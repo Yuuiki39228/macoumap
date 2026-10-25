@@ -1,0 +1,651 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<!-- 关键：手机视口适配 -->
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>点位地图导航-响应式手机适配</title>
+<style>
+*{margin:0;padding:0;box-sizing:border-box;font-family:system-ui}
+.container{display:flex;height:100vh;overflow:hidden;}
+/* 左侧地点列表 电脑端固定320px */
+.side{width:320px;padding:16px;background:#f7f8fa;overflow:auto;border-right:1px solid #eee;}
+.side h3{margin-bottom:12px;color:#222;font-size:22px}
+.item{padding:12px;border-radius:8px;background:#fff;margin-bottom:8px;cursor:pointer;border:1px solid #eee;transition:0.2s}
+.item:hover{border-color:#4096ff}
+.item.active{background:#e8f3ff;border-color:#4096ff}
+.item .name{font-weight:500;margin-bottom:4px;font-size:18px}
+.item .addr{font-size:14px;color:#666;margin-bottom:4px}
+.item .dist{font-size:14px;color:#f56c6c}
+/* 地图容器 */
+#map{flex:1;position:relative;}
+/* ==========独立弹窗【整体缩小版】========== */
+.my-info-popup{
+  width:220px;
+  background:#ffffff;
+  border-radius:8px;
+  box-shadow:0 3px 14px rgba(0,0,0,0.22);
+  position:absolute;
+  z-index:9999;
+  padding:8px;
+  display:none;
+}
+.popup-close{
+  position:absolute;
+  right:6px;
+  top:2px;
+  font-size:18px;
+  cursor:pointer;
+  color:#777;
+  z-index:10;
+}
+.my-info-popup h4{
+  margin:3px 0 4px;
+  font-size:14px;
+}
+.my-info-popup p{
+  font-size:12px;
+  color:#555;
+  line-height:1.4;
+  margin-bottom:5px;
+}
+.nav-btn{
+  display:inline-block;
+  padding:5px 10px;
+  background:#0091ff;
+  color:#fff;
+  border-radius:4px;
+  text-decoration:none;
+  font-size:12px;
+}
+/* 图片容器 固定3:4，增加最大高度限制，防止弹窗过高 */
+.img-wrap{
+  width:100%;
+  aspect-ratio: 3 / 4;
+  max-height:180px;
+  background:#f3f3f3;
+  border-radius:6px;
+  overflow:hidden;
+  position:relative;
+  margin-bottom:6px;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+}
+.img-wrap img{
+  max-width:96%;
+  max-height:96%;
+  object-fit:contain;
+  display:none;
+  cursor:zoom‑in;
+}
+.img-wrap img.show{
+  display:block;
+}
+.slide-btn{
+  position:absolute;
+  top:50%;
+  transform:translateY(-50%);
+  width:22px;height:22px;
+  border-radius:50%;
+  background:rgba(0,0,0,0.45);
+  color:#fff;
+  border:none;
+  cursor:pointer;
+  z-index:2;
+  font-size:14px;
+}
+.prev{left:3px}
+.next{right:3px}
+.img-dot{display:flex;gap:4px;justify-content:center;margin-top:2px;margin-bottom:4px}
+.dot{width:6px;height:6px;border-radius:50%;background:#ccc;cursor:pointer}
+.dot.active{background:#0091ff}
+
+/* 折叠按钮 */
+.toggle-btn{
+  display:none;
+  width:100%;
+  padding:8px;
+  background:#fff;
+  border:1px solid #eee;
+  border-radius:6px 6px 0 0;
+  text-align:center;
+  cursor:pointer;
+  font-size:15px;
+  color:#333;
+}
+.toggle-btn:active{
+  background:#f0f7ff;
+}
+/* =========全屏大图预览新增样式========= */
+.full-preview{
+  position:fixed;
+  inset:0;
+  background:rgba(0,0,0,0.88);
+  z-index:99999;
+  display:none;
+  align-items:center;
+  justify-content:center;
+  padding:16px;
+}
+.full-preview img{
+  max-width:100%;
+  max-height:100%;
+  object-fit:contain;
+}
+.preview-close{
+  position:absolute;
+  top:16px;
+  right:20px;
+  color:#fff;
+  font-size:32px;
+  cursor:pointer;
+}
+.preview-prev,.preview-next{
+  position:absolute;
+  top:50%;
+  transform:translateY(-50%);
+  color:#fff;
+  font-size:36px;
+  background:rgba(255,255,255,0.15);
+  border:none;
+  width:44px;
+  height:44px;
+  border-radius:50%;
+  cursor:pointer;
+}
+.preview-prev{left:16px}
+.preview-next{right:16px}
+/* =========手机响应式规则：上面地图，下面列表，支持折叠========= */
+@media (max-width:768px) {
+  .container{
+    flex-direction:column-reverse;
+    height:100vh;
+  }
+  .toggle-btn{
+    display:block;
+  }
+  .side{
+    width:100%;
+    height:30vh;
+    border-right:none;
+    border-top:1px solid #eee;
+    transition: height 0.3s ease;
+  }
+  /* 折叠后的列表 */
+  .side.collapsed{
+    height:48px;
+    overflow:hidden;
+  }
+  #map{
+    width:100%;
+    height:70vh;
+    transition: height 0.3s ease;
+  }
+  /* 列表折叠时，地图占满剩余高度 */
+  .container.collapsed-map #map{
+    height: calc(100vh - 48px);
+  }
+  .my-info-popup{
+    width:200px;
+  }
+  .preview-prev,.preview-next{
+    width:36px;
+    height:36px;
+    font-size:26px;
+  }
+  .amap-icon img {
+  border-radius: 50% !important;
+  border: 2px solid #ffffff !important;
+  box-shadow: 0 0 0 1px rgba(0,0,0,0.08), 0 3px 8px rgba(0, 0, 0, 0.35) !important;
+  background: #ffffff;
+  box-sizing: border-box;
+}
+}
+</style>
+</head>
+<body>
+<div class="container" id="mainBox">
+  <div class="side" id="sideBox">
+    <div class="toggle-btn" id="toggleBtn">▼ 收起地点列表</div>
+    <h3>地点列表</h3>
+    <div id="placeList"></div>
+  </div>
+  <div id="map"></div>
+</div>
+<!-- 独立弹窗DOM -->
+<div class="my-info-popup" id="myPopup">
+  <span class="popup-close" onclick="closePopup()">×</span>
+  <div id="popupBody"></div>
+</div>
+<!-- =========全屏大图预览DOM========= -->
+<div class="full-preview" id="fullPreview" onclick="closePreview(event)">
+  <span class="preview-close">×</span>
+  <button class="preview-prev" onclick="previewPrev()">‹</button>
+  <img id="previewImg" src="" alt="大图">
+  <button class="preview-next" onclick="previewNext()">›</button>
+</div>
+
+<script type="text/javascript" src="https://webapi.amap.com/maps?v=2.0&key=0014f7e7aa05400f2a2fb929b8f03857&plugin=AMap.Geolocation"></script>
+<script>
+// ✅改动：使用coords:"经度,纬度" 单个字符串字段，不再分开lng、lat
+const placeData = [
+  {
+    id:1,
+    name:"花墙待定",
+    address:"澳门花墙",
+    coords:"113.561538,22.14043",
+    desc:"江南三大名楼之一，打卡圣地",
+    images:[
+      "./images/微信图片_20261025205133_1_972.jpg",
+      "./images/微信图片_20261025205135_2_972.jpg"
+    ]
+  },
+  {
+    id:2,
+    name:"澳门伦敦人海底捞",
+    address:"澳门伦敦人购物中心1层1048A",
+    coords:"113.57092,22.142759",
+    desc:"11.7-11.8海底捞营业时间",
+    images:[
+        "./images/微信图片_20261025214054_8_972.jpg",
+        "./images/微信图片_20261025214055_9_972.jpg",
+        "./images/微信图片_20261025214056_10_972.jpg"
+    ]
+  },
+  {
+    id:3,
+    name:"澳门钜记手信",
+    address:"澳门特别行政区嘉模堂区凼仔官也街46-50号",
+    coords:"113.561741,22.151006",
+    desc:"11.7-11.8",
+    images:[
+      "./images/微信图片_20261025222513_15_972.jpg",
+      "./images/微信图片_20261025222511_14_972.jpg",
+      "./images/微信图片_20261025222510_13_972.jpg",
+      "./images/微信图片_20261025222508_12_972.jpg"
+    ]
+  },
+    {
+    id:4,
+    name:"A.T.M Studio 澳门限定人生四格",
+    address:"A.T.M StudioDiGREEN滴果林百老匯美食街，E-G034",
+    coords:"113.556675,22.143154",
+    desc:"11.7-11.8",
+    images:[
+      "./images/1.jpg"
+    ]
+  },
+    {
+    id:5,
+    name:"鲜果檬檬",
+    address:"澳門氹仔告利雅施利華街39號地下",
+    coords:"113.561809,22.149879",
+    desc:"11.7-11.8营业时间",
+    images:[
+      "./images/2.jpg",
+      "./images/3.jpg",
+      "./images/4.jpg"
+    ]
+  },
+  {
+    id:6,
+    name:"旺记咖啡",
+    address:"澳門氹仔告利雅施利華街60號",
+    coords:"113.562234,22.15019",
+    desc:"11.7-11.8营业时间",
+    images:[
+      "./images/5.jpg",
+      "./images/6.jpg",
+      "./images/7.jpg"
+    ]
+  },
+  {
+    id:7,
+    name:"PHOTOISM 澳门包店应援",
+    address:"澳門氹仔告利雅施利華街39號一樓",
+    coords:"113.562205,22.149925",
+    desc:"11.7-11.8营业时间",
+    images:[
+      "./images/8.jpg",
+      "./images/9.jpg",
+      "./images/10.jpg"
+    ]
+  },
+  {
+    id:8,
+    name:"田耕阁手信 威尼斯人店",
+    address:"澳門路氹金光大道望德聖母灣大馬路威尼斯人購物中心K53號舖（海底撈旁）",
+    coords:"113.565506,22.144386",
+    desc:"11.7‑11.8 门店营业时间（10:00-23:00）",
+    images:[
+      "./images/11.jpg",
+      "./images/12.jpg",
+      "./images/14.jpg"
+    ]
+  },
+  {
+    id:9,
+    name:"田耕阁手信 官也街店",
+    address:"澳門氹仔舊城區施督憲正街3號舖（官也街巴士站旁邊）",
+    coords:"113.562298,22.150072",
+    desc:"11.7‑11.8 门店营业时间（10:00-23:00）",
+    images:[
+      "./images/11.jpg",
+      "./images/13.jpg",
+      "./images/14.jpg"
+    ]
+  },
+  {
+    id:10,
+    name:"阿根牛杂",
+    address:"澳门官也街阿根牛杂",
+    coords:"113.562064,22.150519",
+    desc:"11.7-11.8  每日8:30开始派礼，每日1000份，先到先得，领完截止",
+    images:[
+      "./images/15.jpg",
+      "./images/16.jpg",
+      "./images/17.jpg"
+    ]
+  },
+  {
+    id:11,
+    name:"520屋顶星星ROOF‑STAR",
+    address:"澳门兵房斜巷24号Macau520（威尼斯到官也街第一间甜品文创店）",
+    coords:"113.562757,22.150056",
+    desc:"11月6日 14:00‑21:00（星期五）<br>11月7日 10:30‑21:00（星期六）<br>11月8日 10:30‑21:00（星期日）",
+    images:[
+      "./images/18.jpg",
+      "./images/19.jpg",
+      "./images/20.jpg",
+      "./images/21.jpg",
+      "./images/22.jpg",
+      "./images/23.jpg"
+    ]
+  }
+];
+
+let map, geo, myPosMarker, userLngLat = null;
+let markerList = [];
+let currentPlace = null;
+window.currentSlideIndex = {};
+const popupDom = document.getElementById("myPopup");
+const sideBox = document.getElementById("sideBox");
+const mainBox = document.getElementById("mainBox");
+const toggleBtn = document.getElementById("toggleBtn");
+let isCollapsed = false;
+
+// 大图预览全局变量
+let previewImgList = [];
+let previewCurIndex = 0;
+const fullPreviewDom = document.getElementById('fullPreview');
+const previewImgDom = document.getElementById('previewImg');
+
+// 折叠切换逻辑
+toggleBtn.onclick = function(){
+  isCollapsed = !isCollapsed;
+  if(isCollapsed){
+    sideBox.classList.add("collapsed");
+    mainBox.classList.add("collapsed-map");
+    toggleBtn.innerText = "▲ 展开地点列表";
+  }else{
+    sideBox.classList.remove("collapsed");
+    mainBox.classList.remove("collapsed-map");
+    toggleBtn.innerText = "▼ 收起地点列表";
+  }
+  setTimeout(()=>{
+    map.resize();
+    if(currentPlace) updatePopupPosition(currentPlace);
+  },320)
+}
+
+// =========大图预览函数=========
+window.openPreview = function(placeId, imgIndex){
+  const place = placeData.find(p=>p.id === placeId);
+  previewImgList = [...place.images];
+  previewCurIndex = imgIndex;
+  previewImgDom.src = previewImgList[previewCurIndex];
+  fullPreviewDom.style.display = 'flex';
+}
+window.closePreview = function(e){
+  if(e && (e.target.tagName === 'IMG' || e.target.tagName === 'BUTTON')) return;
+  fullPreviewDom.style.display = 'none';
+}
+window.previewPrev = function(){
+  previewCurIndex--;
+  if(previewCurIndex < 0) previewCurIndex = previewImgList.length -1;
+  previewImgDom.src = previewImgList[previewCurIndex];
+}
+window.previewNext = function(){
+  previewCurIndex++;
+  if(previewCurIndex >= previewImgList.length) previewCurIndex = 0;
+  previewImgDom.src = previewImgList[previewCurIndex];
+}
+document.querySelector('.preview-close').onclick = closePreview;
+
+// 初始化地图
+function initMap(){
+  map = new AMap.Map("map", {
+    zoom:13,
+    center:[113.561538,22.14043],
+    resizeEnable:true
+  });
+  geo = new AMap.Geolocation({
+    enableHighAccuracy:true,
+    timeout:10000,
+    buttonPosition:"RB"
+  });
+  map.addControl(geo);
+
+  map.on("click",()=>closePopup());
+  map.on("moveend", ()=>{
+    if(currentPlace){
+      updatePopupPosition(currentPlace);
+    }
+  });
+  window.addEventListener('resize',()=>{
+    map.resize();
+    if(currentPlace) updatePopupPosition(currentPlace);
+  })
+
+  renderPlaces();
+  geo.getCurrentPosition((status, res)=>{
+    if(status === 'complete'){
+      userLngLat = res.position;
+      myPosMarker = new AMap.Marker({
+        position:userLngLat,
+        icon:"https://a.amap.com/jsapi_demos/static/demo-center/icons/poi-marker-default.png",
+        map:map
+      });
+      refreshAllDistance();
+    }else{
+      console.warn("定位失败：",res);
+    }
+  });
+}
+
+// 解析coords字符串 "lng,lat" 返回 {lng,lat}
+function parseCoords(str){
+  const arr = str.split(",");
+  return {
+    lng: parseFloat(arr[0]),
+    lat: parseFloat(arr[1])
+  }
+}
+
+// 渲染点位标记
+function renderPlaces(){
+  const listWrap = document.getElementById("placeList");
+  listWrap.innerHTML = "";
+  placeData.forEach((place)=>{
+    const {lng,lat} = parseCoords(place.coords);
+    const pos = new AMap.LngLat(lng, lat);
+    let markerOption = {
+      position:pos,
+      title:place.name,
+      map:map
+    }
+    if(place.images && place.images.length>0){
+  markerOption.icon = new AMap.Icon({
+    image: place.images[0],
+    size: new AMap.Size(32,32),
+    imageSize: new AMap.Size(28,28),
+    anchor: new AMap.Pixel(16,16)
+  })
+}
+else{
+      markerOption.icon = "https://a.amap.com/jsapi_demos/static/demo-center/icons/poi-marker-default.png"
+    }
+    const marker = new AMap.Marker(markerOption);
+    marker.extData = place;
+    markerList.push(marker);
+
+    marker.on("click",()=>{
+      openPopup(place);
+      setActiveItem(place.id);
+    })
+
+    const div = document.createElement("div");
+    div.className = "item";
+    div.dataset.id = place.id;
+    div.innerHTML = `
+      <div class="name">${place.name}</div>
+      <div class="addr">${place.address}</div>
+      <div class="dist" data-id="${place.id}">距离：--</div>
+    `
+    div.onclick = ()=>{
+      map.setCenter(pos);
+      map.setZoom(14);
+      openPopup(place);
+      setActiveItem(place.id);
+    }
+    listWrap.appendChild(div);
+  })
+  map.setFitView(markerList);
+}
+
+window.closePopup = function(){
+  popupDom.style.display = "none";
+  currentPlace = null;
+}
+
+function updatePopupPosition(place){
+  const {lng,lat} = parseCoords(place.coords);
+  const lnglat = new AMap.LngLat(lng, lat);
+  const pixel = map.lngLatToContainer(lnglat);
+  const mapDom = document.getElementById("map");
+  const mapRect = mapDom.getBoundingClientRect();
+  const popupWidth = popupDom.offsetWidth;
+  const popupHeight = popupDom.offsetHeight;
+
+  let left = pixel.getX() + 18;
+  let top = pixel.getY() + 24;
+
+  if(left + popupWidth > mapRect.width - 10){
+    left = pixel.getX() - popupWidth - 18;
+  }
+  if(top + popupHeight > mapRect.height - 10){
+    top = pixel.getY() - popupHeight - 18;
+  }
+  if(left < 10) left = 10;
+  if(top < 10) top = 10;
+
+  popupDom.style.left = left + "px";
+  popupDom.style.top = top + "px";
+}
+
+function openPopup(place){
+  currentPlace = place;
+  const {lng,lat} = parseCoords(place.coords);
+  const navUrl = `https://uri.amap.com/navigation?from=${userLngLat ? userLngLat.lng+','+userLngLat.lat:''}&to=${lng},${lat},${place.name}&mode=car&callnative=1&coordinate=gaode&src=myweb`
+  let imgHtml = '';
+  if(place.images && place.images.length>0){
+    const imgList = place.images;
+    let imgItems = imgList.map((src,i)=>`
+        <img class="img-${place.id}-item" data-idx="${i}" onclick="openPreview(${place.id},${i})" src="${src}" alt="" onerror="this.src='https://p3-flow-image-sign.byteimg.com/tos-cn-i-a9rns2rl98/default_img.png'">
+    `).join("");
+    let dots = imgList.map((_,i)=>
+        `<span class="dot ${i===0?'active':''}" onclick="jumpImg(${place.id},${i})"></span>`
+    ).join("");
+
+    imgHtml = `
+    <div class="img-wrap" id="wrap-${place.id}">
+        ${imgItems}
+        ${imgList.length>1 ? `
+            <button class="slide-btn prev" onclick="slideImg(${place.id},-1)">‹</button>
+            <button class="slide-btn next" onclick="slideImg(${place.id},1)">›</button>
+        `:""}
+    </div>
+    <div class="img-dot">${dots}</div>
+    `
+  }
+
+  const bodyHtml = `
+      ${imgHtml}
+      <h4>${place.name}</h4>
+      <p>${place.address}</p>
+      <p>${place.desc}</p>
+      <a class="nav-btn" href="${navUrl}" target="_blank">👉 高德导航</a>
+  `;
+  document.getElementById("popupBody").innerHTML = bodyHtml;
+  window.currentSlideIndex[place.id] = 0;
+
+  popupDom.style.display = "block";
+  updatePopupPosition(place);
+  setTimeout(()=>{
+    refreshImageShow(place.id);
+  },30);
+}
+
+function refreshImageShow(placeId){
+  const allImgs = document.querySelectorAll(`.img-${placeId}-item`);
+  const currentIdx = window.currentSlideIndex[placeId];
+  allImgs.forEach(img=>{
+    const idx = Number(img.dataset.idx);
+    img.classList.toggle("show", idx === currentIdx);
+  })
+  const wrap = document.getElementById(`wrap-${placeId}`);
+  if(!wrap) return;
+  const dots = wrap.nextElementSibling.querySelectorAll(".dot");
+  dots.forEach((dot,i)=>{
+    dot.classList.toggle("active", i === currentIdx);
+  })
+}
+
+window.slideImg = function(placeId, step){
+  const place = placeData.find(p=>p.id === placeId);
+  const imgList = place.images;
+  let idx = window.currentSlideIndex[placeId] + step;
+  if(idx <0) idx = imgList.length -1;
+  if(idx >= imgList.length) idx = 0;
+  window.currentSlideIndex[placeId] = idx;
+  refreshImageShow(placeId);
+}
+
+window.jumpImg = function(placeId, idx){
+  window.currentSlideIndex[placeId] = idx;
+  refreshImageShow(placeId);
+}
+
+function setActiveItem(id){
+  document.querySelectorAll(".item").forEach(el=>{
+    el.classList.toggle("active", el.dataset.id == id);
+  })
+}
+
+function refreshAllDistance(){
+  if(!userLngLat) return;
+  placeData.forEach(p=>{
+    const {lng,lat} = parseCoords(p.coords);
+    const pLatLng = new AMap.LngLat(lng,lat);
+    const dis = userLngLat.distance(pLatLng);
+    let text = dis < 1000 ? `${dis.toFixed(0)}米` : `${(dis/1000).toFixed(2)}公里`;
+    const dom = document.querySelector(`.dist[data-id="${p.id}"]`);
+    if(dom) dom.innerText = `距离：${text}`;
+  })
+}
+
+initMap();
+</script>
+</body>
+</html>
