@@ -2,26 +2,39 @@
 <html lang="zh-CN">
 <head>
 <meta charset="utf-8">
-<!-- 关键：手机视口适配 -->
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-<title>点位地图导航-响应式手机适配</title>
+<title>2026宮脇咲良澳门演唱会应援</title>
 <style>
 *{margin:0;padding:0;box-sizing:border-box;font-family:system-ui}
+button,a{
+  -webkit-tap-highlight-color: transparent;
+  outline:none;
+}
+/* 兜底：捕获高德定位精度圈svg图形，强制隐藏 */
+.amap-container svg path[fill-opacity="0.15"] {
+  display:none !important;
+}
 .container{display:flex;height:100vh;overflow:hidden;}
-/* 左侧地点列表 电脑端固定320px */
+.created-by{
+  position:fixed;
+  top:8px;
+  right:12px;
+  font-size:10px;
+  color:#666;
+  z-index:100000;
+  pointer-events:none;
+}
 .side{width:320px;padding:16px;background:#f7f8fa;overflow:auto;border-right:1px solid #eee;}
-.side h3{margin-bottom:12px;color:#222;font-size:22px}
-.item{padding:12px;border-radius:8px;background:#fff;margin-bottom:8px;cursor:pointer;border:1px solid #eee;transition:0.2s}
+.side h3{margin-bottom:12px;color:#222;font-size:18px}
+.item{padding:10px;border-radius:8px;background:#fff;margin-bottom:8px;cursor:pointer;border:1px solid #eee;transition:0.2s}
 .item:hover{border-color:#4096ff}
 .item.active{background:#e8f3ff;border-color:#4096ff}
-.item .name{font-weight:500;margin-bottom:4px;font-size:18px}
-.item .addr{font-size:14px;color:#666;margin-bottom:4px}
-.item .dist{font-size:14px;color:#f56c6c}
-/* 地图容器 */
+.item .name{font-weight:500;margin-bottom:3px;font-size:15px}
+.item .addr{font-size:12px;color:#666;margin-bottom:3px}
+.item .dist{font-size:12px;color:#f56c6c}
 #map{flex:1;position:relative;}
-/* ==========独立弹窗【整体缩小版】========== */
 .my-info-popup{
-  width:220px;
+  width:200px;
   background:#ffffff;
   border-radius:8px;
   box-shadow:0 3px 14px rgba(0,0,0,0.22);
@@ -50,34 +63,35 @@
   margin-bottom:5px;
 }
 .nav-btn{
-  display:inline-block;
-  padding:5px 10px;
-  background:#0091ff;
-  color:#fff;
+  display:block;
+  width:100%;
+  padding:6px 8px;
+  background:#ffffff;
+  color:#222222;
   border-radius:4px;
   text-decoration:none;
   font-size:12px;
+  text-align:center;
+  border:1px solid #cccccc;
+  margin-top:4px;
 }
-/* 图片容器 固定3:4，增加最大高度限制，防止弹窗过高 */
 .img-wrap{
   width:100%;
   aspect-ratio: 3 / 4;
-  max-height:180px;
-  background:#f3f3f3;
+  max-height:240px;
+  min-height:180px;
+  background:#ffffff;
   border-radius:6px;
   overflow:hidden;
   position:relative;
   margin-bottom:6px;
-  display:flex;
-  align-items:center;
-  justify-content:center;
 }
 .img-wrap img{
-  max-width:96%;
-  max-height:96%;
+  width:100%;
+  height:100%;
   object-fit:contain;
   display:none;
-  cursor:zoom‑in;
+  cursor:zoom-in;
 }
 .img-wrap img.show{
   display:block;
@@ -88,9 +102,9 @@
   transform:translateY(-50%);
   width:22px;height:22px;
   border-radius:50%;
-  background:rgba(0,0,0,0.45);
-  color:#fff;
-  border:none;
+  background:rgba(255,255,255,0.55);
+  color:#222;
+  border:1px solid rgba(0,0,0,0.08);
   cursor:pointer;
   z-index:2;
   font-size:14px;
@@ -100,8 +114,6 @@
 .img-dot{display:flex;gap:4px;justify-content:center;margin-top:2px;margin-bottom:4px}
 .dot{width:6px;height:6px;border-radius:50%;background:#ccc;cursor:pointer}
 .dot.active{background:#0091ff}
-
-/* 折叠按钮 */
 .toggle-btn{
   display:none;
   width:100%;
@@ -111,13 +123,12 @@
   border-radius:6px 6px 0 0;
   text-align:center;
   cursor:pointer;
-  font-size:15px;
+  font-size:14px;
   color:#333;
 }
 .toggle-btn:active{
   background:#f0f7ff;
 }
-/* =========全屏大图预览新增样式========= */
 .full-preview{
   position:fixed;
   inset:0;
@@ -156,7 +167,6 @@
 }
 .preview-prev{left:16px}
 .preview-next{right:16px}
-/* =========手机响应式规则：上面地图，下面列表，支持折叠========= */
 @media (max-width:768px) {
   .container{
     flex-direction:column-reverse;
@@ -172,39 +182,35 @@
     border-top:1px solid #eee;
     transition: height 0.3s ease;
   }
-  /* 折叠后的列表 */
   .side.collapsed{
     height:48px;
     overflow:hidden;
+    padding-top:6px;
+    padding-bottom:6px;
+  }
+  .side.collapsed h3,
+  .side.collapsed #placeList{
+    display:none;
   }
   #map{
     width:100%;
     height:70vh;
     transition: height 0.3s ease;
   }
-  /* 列表折叠时，地图占满剩余高度 */
   .container.collapsed-map #map{
     height: calc(100vh - 48px);
-  }
-  .my-info-popup{
-    width:200px;
   }
   .preview-prev,.preview-next{
     width:36px;
     height:36px;
     font-size:26px;
   }
-  .amap-icon img {
-  border-radius: 50% !important;
-  border: 2px solid #ffffff !important;
-  box-shadow: 0 0 0 1px rgba(0,0,0,0.08), 0 3px 8px rgba(0, 0, 0, 0.35) !important;
-  background: #ffffff;
-  box-sizing: border-box;
-}
 }
 </style>
+<base target="_blank">
 </head>
 <body>
+<div class="created-by">Created by 結絾</div>
 <div class="container" id="mainBox">
   <div class="side" id="sideBox">
     <div class="toggle-btn" id="toggleBtn">▼ 收起地点列表</div>
@@ -213,22 +219,18 @@
   </div>
   <div id="map"></div>
 </div>
-<!-- 独立弹窗DOM -->
 <div class="my-info-popup" id="myPopup">
   <span class="popup-close" onclick="closePopup()">×</span>
   <div id="popupBody"></div>
 </div>
-<!-- =========全屏大图预览DOM========= -->
 <div class="full-preview" id="fullPreview" onclick="closePreview(event)">
   <span class="preview-close">×</span>
   <button class="preview-prev" onclick="previewPrev()">‹</button>
   <img id="previewImg" src="" alt="大图">
   <button class="preview-next" onclick="previewNext()">›</button>
 </div>
-
 <script type="text/javascript" src="https://webapi.amap.com/maps?v=2.0&key=0014f7e7aa05400f2a2fb929b8f03857&plugin=AMap.Geolocation"></script>
 <script>
-// ✅改动：使用coords:"经度,纬度" 单个字符串字段，不再分开lng、lat
 const placeData = [
   {
     id:1,
@@ -268,8 +270,8 @@ const placeData = [
   },
     {
     id:4,
-    name:"A.T.M Studio 澳门限定人生四格",
-    address:"A.T.M StudioDiGREEN滴果林百老匯美食街，E-G034",
+    name:"A.T.M Studio 澳门限定人生四格",
+    address:"A.T.M StudioDiGREEN滴果林百老匯美食街，E-G034",
     coords:"113.556675,22.143154",
     desc:"11.7-11.8",
     images:[
@@ -305,7 +307,7 @@ const placeData = [
     name:"PHOTOISM 澳门包店应援",
     address:"澳門氹仔告利雅施利華街39號一樓",
     coords:"113.562205,22.149925",
-    desc:"11.7-11.8营业时间",
+    desc:"11.7-11.8",
     images:[
       "./images/8.jpg",
       "./images/9.jpg",
@@ -317,7 +319,7 @@ const placeData = [
     name:"田耕阁手信 威尼斯人店",
     address:"澳門路氹金光大道望德聖母灣大馬路威尼斯人購物中心K53號舖（海底撈旁）",
     coords:"113.565506,22.144386",
-    desc:"11.7‑11.8 门店营业时间（10:00-23:00）",
+    desc:"11.7-11.8 门店营业时间（10:00-23:00）",
     images:[
       "./images/11.jpg",
       "./images/12.jpg",
@@ -329,7 +331,7 @@ const placeData = [
     name:"田耕阁手信 官也街店",
     address:"澳門氹仔舊城區施督憲正街3號舖（官也街巴士站旁邊）",
     coords:"113.562298,22.150072",
-    desc:"11.7‑11.8 门店营业时间（10:00-23:00）",
+    desc:"11.7-11.8 门店营业时间（10:00-23:00）",
     images:[
       "./images/11.jpg",
       "./images/13.jpg",
@@ -350,10 +352,10 @@ const placeData = [
   },
   {
     id:11,
-    name:"520屋顶星星ROOF‑STAR",
+    name:"520屋顶星星ROOF-STAR",
     address:"澳门兵房斜巷24号Macau520（威尼斯到官也街第一间甜品文创店）",
     coords:"113.562757,22.150056",
-    desc:"11月6日 14:00‑21:00（星期五）<br>11月7日 10:30‑21:00（星期六）<br>11月8日 10:30‑21:00（星期日）",
+    desc:"11月6日 14:00-21:00（星期五）<br>11月7日 10:30-21:00（星期六）<br>11月8日 10:30-21:00（星期日）",
     images:[
       "./images/18.jpg",
       "./images/19.jpg",
@@ -362,10 +364,32 @@ const placeData = [
       "./images/22.jpg",
       "./images/23.jpg"
     ]
+  },
+  {
+    id:12,
+    name:"舞伎抹茶澳门包店应援",
+    address:"乾草圍(賣草地里)13號長信大廈地下C座（距離大三巴3分鐘腳程）",
+    coords:"113.545707,22.192216",
+    desc:"11.7-11.8 门店营业时间",
+    images:[
+      "./images/24.jpg",
+      "./images/25.jpg",
+      "./images/26.jpg"
+    ]
+  },
+  {
+    id:13,
+    name:"舞伎抹茶 人生四格",
+    address:"舞伎抹茶大三巴分店花王堂区大三巴街凤凰大厦地下23E(红色邮筒旁)",
+    coords:"113.545777,22.193819",
+    desc:"11.7-11.8 门店营业时间",
+    images:[
+      "./images/27.jpg"
+    ]
   }
 ];
-
 let map, geo, myPosMarker, userLngLat = null;
+const placeDist = {};
 let markerList = [];
 let currentPlace = null;
 window.currentSlideIndex = {};
@@ -374,14 +398,10 @@ const sideBox = document.getElementById("sideBox");
 const mainBox = document.getElementById("mainBox");
 const toggleBtn = document.getElementById("toggleBtn");
 let isCollapsed = false;
-
-// 大图预览全局变量
 let previewImgList = [];
 let previewCurIndex = 0;
 const fullPreviewDom = document.getElementById('fullPreview');
 const previewImgDom = document.getElementById('previewImg');
-
-// 折叠切换逻辑
 toggleBtn.onclick = function(){
   isCollapsed = !isCollapsed;
   if(isCollapsed){
@@ -393,13 +413,12 @@ toggleBtn.onclick = function(){
     mainBox.classList.remove("collapsed-map");
     toggleBtn.innerText = "▼ 收起地点列表";
   }
+  sideBox.scrollTop = 0;
   setTimeout(()=>{
     map.resize();
     if(currentPlace) updatePopupPosition(currentPlace);
   },320)
 }
-
-// =========大图预览函数=========
 window.openPreview = function(placeId, imgIndex){
   const place = placeData.find(p=>p.id === placeId);
   previewImgList = [...place.images];
@@ -422,8 +441,6 @@ window.previewNext = function(){
   previewImgDom.src = previewImgList[previewCurIndex];
 }
 document.querySelector('.preview-close').onclick = closePreview;
-
-// 初始化地图
 function initMap(){
   map = new AMap.Map("map", {
     zoom:13,
@@ -433,10 +450,21 @@ function initMap(){
   geo = new AMap.Geolocation({
     enableHighAccuracy:true,
     timeout:10000,
-    buttonPosition:"RB"
+    buttonPosition:"RB",
+    showCircle: false,
+    showMarker: true
   });
   map.addControl(geo);
-
+  geo.on("complete", function(res){
+    if(res.marker) res.marker.remove();
+    setTimeout(()=>{
+      if(res.circle) res.circle.remove();
+    }, 120);
+    if(res.position){
+      userLngLat = res.position;
+      refreshAllDistance();
+    }
+  });
   map.on("click",()=>closePopup());
   map.on("moveend", ()=>{
     if(currentPlace){
@@ -447,24 +475,24 @@ function initMap(){
     map.resize();
     if(currentPlace) updatePopupPosition(currentPlace);
   })
-
   renderPlaces();
   geo.getCurrentPosition((status, res)=>{
-    if(status === 'complete'){
+    if(status === 'complete' && res && res.position){
       userLngLat = res.position;
-      myPosMarker = new AMap.Marker({
-        position:userLngLat,
-        icon:"https://a.amap.com/jsapi_demos/static/demo-center/icons/poi-marker-default.png",
-        map:map
-      });
       refreshAllDistance();
     }else{
-      console.warn("定位失败：",res);
+      AMap.plugin('AMap.CitySearch', function(){
+        var citySearch = new AMap.CitySearch();
+        citySearch.getLocalCity(function(s, r){
+          if(s === 'complete' && r && r.bounds){
+            userLngLat = r.bounds.getCenter();
+            refreshAllDistance();
+          }
+        });
+      });
     }
   });
 }
-
-// 解析coords字符串 "lng,lat" 返回 {lng,lat}
 function parseCoords(str){
   const arr = str.split(",");
   return {
@@ -472,8 +500,6 @@ function parseCoords(str){
     lat: parseFloat(arr[1])
   }
 }
-
-// 渲染点位标记
 function renderPlaces(){
   const listWrap = document.getElementById("placeList");
   listWrap.innerHTML = "";
@@ -486,25 +512,33 @@ function renderPlaces(){
       map:map
     }
     if(place.images && place.images.length>0){
-  markerOption.icon = new AMap.Icon({
-    image: place.images[0],
-    size: new AMap.Size(32,32),
-    imageSize: new AMap.Size(28,28),
-    anchor: new AMap.Pixel(16,16)
-  })
-}
-else{
+  markerOption.content = `
+    <div style="
+      width:32px;
+      height:32px;
+      border-radius:50%;
+      overflow:hidden;
+      border:2px solid #ffffff;
+      box-shadow:0 2px 6px rgba(0,0,0,0.35);
+      background:#fff;
+      display:flex;
+      align-items:center;
+      justify-content:center;
+      box-sizing:border-box;
+    ">
+      <img src="${place.images[0]}" style="width:100%;height:100%;object-fit:cover;display:block;" />
+    </div>
+  `;
+  markerOption.offset = new AMap.Pixel(-16, -16);
+}else{
       markerOption.icon = "https://a.amap.com/jsapi_demos/static/demo-center/icons/poi-marker-default.png"
     }
     const marker = new AMap.Marker(markerOption);
     marker.extData = place;
-    markerList.push(marker);
-
     marker.on("click",()=>{
       openPopup(place);
       setActiveItem(place.id);
     })
-
     const div = document.createElement("div");
     div.className = "item";
     div.dataset.id = place.id;
@@ -514,7 +548,9 @@ else{
       <div class="dist" data-id="${place.id}">距离：--</div>
     `
     div.onclick = ()=>{
-      map.setCenter(pos);
+      const pos = new AMap.LngLat(parseFloat(place.coords.split(',')[0]),parseFloat(place.coords.split(',')[1]));
+      // 设置中心点，给marker预留上下边距，不会贴屏幕边缘
+      map.setCenter(pos,true);
       map.setZoom(14);
       openPopup(place);
       setActiveItem(place.id);
@@ -523,12 +559,6 @@ else{
   })
   map.setFitView(markerList);
 }
-
-window.closePopup = function(){
-  popupDom.style.display = "none";
-  currentPlace = null;
-}
-
 function updatePopupPosition(place){
   const {lng,lat} = parseCoords(place.coords);
   const lnglat = new AMap.LngLat(lng, lat);
@@ -537,10 +567,8 @@ function updatePopupPosition(place){
   const mapRect = mapDom.getBoundingClientRect();
   const popupWidth = popupDom.offsetWidth;
   const popupHeight = popupDom.offsetHeight;
-
   let left = pixel.getX() + 18;
   let top = pixel.getY() + 24;
-
   if(left + popupWidth > mapRect.width - 10){
     left = pixel.getX() - popupWidth - 18;
   }
@@ -549,11 +577,9 @@ function updatePopupPosition(place){
   }
   if(left < 10) left = 10;
   if(top < 10) top = 10;
-
   popupDom.style.left = left + "px";
   popupDom.style.top = top + "px";
 }
-
 function openPopup(place){
   currentPlace = place;
   const {lng,lat} = parseCoords(place.coords);
@@ -562,41 +588,57 @@ function openPopup(place){
   if(place.images && place.images.length>0){
     const imgList = place.images;
     let imgItems = imgList.map((src,i)=>`
-        <img class="img-${place.id}-item" data-idx="${i}" onclick="openPreview(${place.id},${i})" src="${src}" alt="" onerror="this.src='https://p3-flow-image-sign.byteimg.com/tos-cn-i-a9rns2rl98/default_img.png'">
+        <img class="img-${place.id}-item" data-idx="${i}" onclick="openPreview(${place.id},${i})" src="${src}" alt="" onerror="this.src='https://p3-flow-image-sign.byteimg.com/tos-cn-i-a9rns2rl98/default_img.png';this.classList.add('show')">
     `).join("");
     let dots = imgList.map((_,i)=>
         `<span class="dot ${i===0?'active':''}" onclick="jumpImg(${place.id},${i})"></span>`
     ).join("");
-
     imgHtml = `
     <div class="img-wrap" id="wrap-${place.id}">
-        ${imgItems}
         ${imgList.length>1 ? `
             <button class="slide-btn prev" onclick="slideImg(${place.id},-1)">‹</button>
             <button class="slide-btn next" onclick="slideImg(${place.id},1)">›</button>
         `:""}
+        ${imgItems}
     </div>
     <div class="img-dot">${dots}</div>
     `
   }
-
   const bodyHtml = `
       ${imgHtml}
       <h4>${place.name}</h4>
       <p>${place.address}</p>
       <p>${place.desc}</p>
-      <a class="nav-btn" href="${navUrl}" target="_blank">👉 高德导航</a>
+      <a class="nav-btn" href="${navUrl}" target="_blank">🔜 到这去</a>
   `;
   document.getElementById("popupBody").innerHTML = bodyHtml;
   window.currentSlideIndex[place.id] = 0;
-
   popupDom.style.display = "block";
   updatePopupPosition(place);
   setTimeout(()=>{
     refreshImageShow(place.id);
+    setTimeout(()=>{
+  refreshImageShow(place.id);
+  if(window.autoSlideTimer){
+    clearInterval(window.autoSlideTimer);
+  }
+  if(place.images.length > 1){
+    window.autoSlideTimer = setInterval(()=>{
+      slideImg(place.id, 1);
+    },5000);
+  }
+},30);
   },30);
 }
-
+window.closePopup = function(){
+  if(window.autoSlideTimer){
+    clearInterval(window.autoSlideTimer);
+    window.autoSlideTimer = null;
+  }
+  const popupDom = document.querySelector('.my-info-popup');
+  popupDom.style.display = "none";
+  currentPlace = null;
+}
 function refreshImageShow(placeId){
   const allImgs = document.querySelectorAll(`.img-${placeId}-item`);
   const currentIdx = window.currentSlideIndex[placeId];
@@ -611,7 +653,6 @@ function refreshImageShow(placeId){
     dot.classList.toggle("active", i === currentIdx);
   })
 }
-
 window.slideImg = function(placeId, step){
   const place = placeData.find(p=>p.id === placeId);
   const imgList = place.images;
@@ -621,30 +662,52 @@ window.slideImg = function(placeId, step){
   window.currentSlideIndex[placeId] = idx;
   refreshImageShow(placeId);
 }
-
 window.jumpImg = function(placeId, idx){
   window.currentSlideIndex[placeId] = idx;
   refreshImageShow(placeId);
 }
-
 function setActiveItem(id){
   document.querySelectorAll(".item").forEach(el=>{
     el.classList.toggle("active", el.dataset.id == id);
   })
 }
-
 function refreshAllDistance(){
   if(!userLngLat) return;
-  placeData.forEach(p=>{
-    const {lng,lat} = parseCoords(p.coords);
-    const pLatLng = new AMap.LngLat(lng,lat);
-    const dis = userLngLat.distance(pLatLng);
-    let text = dis < 1000 ? `${dis.toFixed(0)}米` : `${(dis/1000).toFixed(2)}公里`;
-    const dom = document.querySelector(`.dist[data-id="${p.id}"]`);
-    if(dom) dom.innerText = `距离：${text}`;
-  })
+  try{
+    if(!(userLngLat instanceof AMap.LngLat)){
+      const lng = userLngLat.lng != null ? userLngLat.lng : userLngLat.longitude;
+      const lat = userLngLat.lat != null ? userLngLat.lat : userLngLat.latitude;
+      userLngLat = new AMap.LngLat(lng, lat);
+    }
+    placeData.forEach(p=>{
+      const {lng,lat} = parseCoords(p.coords);
+      const pLatLng = new AMap.LngLat(lng,lat);
+      const dis = userLngLat.distance(pLatLng);
+      placeDist[p.id] = dis;
+      let text = dis < 1000 ? `${dis.toFixed(0)}米` : `${(dis/1000).toFixed(2)}公里`;
+      const dom = document.querySelector(`.dist[data-id="${p.id}"]`);
+      if(dom) dom.innerText = `距离：${text}`;
+    })
+    sortPlaceList();
+  }catch(e){
+    console.warn("刷新距离失败：", e);
+  }
 }
-
+function sortPlaceList(){
+  const listWrap = document.getElementById("placeList");
+  if(!listWrap) return;
+  const items = Array.from(listWrap.children);
+  const getVal = function(el){
+    const v = placeDist[el.dataset.id];
+    return (v == null || isNaN(v)) ? Infinity : v;
+  };
+  items.sort(function(a, b){
+    return getVal(a) - getVal(b);
+  });
+  items.forEach(function(el){
+    listWrap.appendChild(el);
+  });
+}
 initMap();
 </script>
 </body>
