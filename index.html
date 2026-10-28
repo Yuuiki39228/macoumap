@@ -10,7 +10,6 @@ button,a{
   -webkit-tap-highlight-color: transparent;
   outline:none;
 }
-/* 兜底：捕获高德定位精度圈svg图形，强制隐藏 */
 .amap-container svg path[fill-opacity="0.15"] {
   display:none !important;
 }
@@ -23,6 +22,146 @@ button,a{
   color:#666;
   z-index:100000;
   pointer-events:none;
+}
+/* ============ 樱花粉主题：打卡记录按钮与弹窗 ============ */
+.checkin-btn-fixed{
+  position:fixed;
+  top:32px;
+  right:14px;
+  z-index:99990;
+  padding:8px 14px;
+  background:#ffecf3;
+  color:#7a4a5b;
+  border:1px solid hsl(0, 0%, 100%);
+  border-radius:14px;
+  font-size:13px;
+  font-weight:600;
+  cursor:pointer;
+  box-shadow:0 4px 14px rgba(255, 182, 210, 0.45);
+  transition: all 0.25s ease;
+}
+.checkin-btn-fixed:active{
+  transform:scale(0.96);
+  background:#ffc2d6;
+}
+.checkin-modal{
+  position:fixed;
+  inset:0;
+  background:transparent;
+  z-index:100001;
+  display:none;
+  padding:16px;
+}
+.checkin-modal-inner{
+  width:100%;
+  max-width:440px;
+  margin:14px auto 0;
+  border-radius:20px;
+  box-shadow:0 8px 24px rgba(255, 180, 210, 0.25);
+  border:1px solid #ffdce9;
+  overflow:visible;
+}
+/* 顶部固定头图，包含标题+关闭按钮，高度70px */
+.bg-top{
+  width:100%;
+  height:70px;
+  background:url("./images/bg-top.png") no-repeat center / 100% 100%;
+  display:flex;
+  justify-content:space-between;
+  align-items:center;
+  padding:0 22px;
+  border-radius:20px 20px 0 0;
+}
+.bg-top h4{
+  font-size:17px;
+  color:#b56576;
+  font-weight:600;
+  letter-spacing:0.5px;
+}
+.checkin-close{
+  font-size:24px;
+  cursor:pointer;
+  color:#d88ea5;
+  width:32px;
+  height:32px;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  border-radius:10px;
+  background:#ffe4f1;
+  transition:all 0.25s ease;
+}
+.checkin-close:hover{
+  background:#ffcfe4;
+  color:#b56576;
+}
+/* 中间：唯一滚动容器！纵向repeat-y，列表变长自动拉长 */
+.bg-middle{
+  background:url("./images/bg-middle.png") repeat-y center top / 100% auto;
+  padding:0 22px;
+  padding-top:10px;
+  padding-bottom:10px;
+  overflow-y:auto;
+  max-height:calc(85vh - 140px);
+  min-height:60px;
+}
+#checkinListWrap{
+  width:100%;
+  padding-bottom:10px;
+}
+/* 底部固定底图 */
+.bg-bottom{
+  width:100%;
+  height: 60px;
+  background:url("./images/bg-bottom.png") no-repeat center / 100% 100%;
+  border-radius:0 0 20px 20px;
+}
+
+/* 打卡条目，已删除右侧票根锯齿伪元素 */
+.checkin-item{
+  position:relative;
+  padding:16px 12px 16px 44px;
+  border-bottom:1px solid #ffdde8;
+  margin-bottom:4px;
+  background:transparent;
+}
+.checkin-item-icon{
+  position:absolute;
+  left:4px;
+  top:50%;
+  transform:translateY(-50%);
+  width:28px;
+  height:28px;
+  object-fit:contain;
+}
+.checkin-item-name{
+  font-weight:600;
+  font-size:16px;
+  color:#8c4859;
+  margin-bottom:6px;
+}
+.checkin-item-time{
+  font-size:13px;
+  color:#b8788a;
+}
+.checkin-empty{
+  text-align:center;
+  color:#c08aa0;
+  padding:44px 0;
+  font-size:14px;
+}
+.btn-checked{
+  background:#ffe4f1 !important;
+  color:#b56576 !important;
+  border:1px solid #ffb3d1 !important;
+}
+.pop-row-two{
+  display:flex;
+  gap:6px;
+  margin-top:4px;
+}
+.pop-row-two a,.pop-row-two button{
+  flex:1;
 }
 .side{width:320px;padding:16px;background:#f7f8fa;overflow:auto;border-right:1px solid #eee;}
 .side h3{margin-bottom:12px;color:#222;font-size:18px}
@@ -168,6 +307,18 @@ button,a{
 }
 .preview-prev{left:16px}
 .preview-next{right:16px}
+.marker-wrap{
+  width:33px;
+  height:33px;
+}
+.marker-wrap img{
+  width:100%;
+  height:100%;
+  transition: filter 0.2s;
+}
+.marker-checked img{
+  filter: grayscale(80%) brightness(0.75);
+}
 @media (max-width:768px) {
   .container{
     flex-direction:column-reverse;
@@ -206,11 +357,30 @@ button,a{
     height:36px;
     font-size:26px;
   }
+  .bg-top{
+    padding:0 16px;
+  }
+  .bg-middle{
+    padding:0 16px;
+  }
 }
 </style>
 <base target="_blank">
 </head>
 <body>
+<button class="checkin-btn-fixed" onclick="openCheckinModal()">🌸 打卡记录</button>
+<div class="checkin-modal" id="checkinModal">
+  <div class="checkin-modal-inner">
+    <div class="bg-top">
+      <h4></h4>
+      <span class="checkin-close" onclick="closeCheckinModal()">×</span>
+    </div>
+    <div class="bg-middle">
+      <div id="checkinListWrap"></div>
+    </div>
+    <div class="bg-bottom"></div>
+  </div>
+</div>
 <div class="created-by">Created by 結絾</div>
 <div class="container" id="mainBox">
   <div class="side" id="sideBox">
@@ -241,8 +411,8 @@ const placeData = [
     desc:"江南三大名楼之一，打卡圣地",
     markerIcon: "./images/marker_1.png",
     images:[
-      "./images/微信图片_20261025205133_1_972.jpg",
-      "./images/微信图片_20261025205135_2_972.jpg"
+      "./images/微信图片_20261025205133_1_972.webp",
+      "./images/微信图片_20261025205135_2_972.webp"
     ]
   },
   {
@@ -253,9 +423,9 @@ const placeData = [
     desc:"11.7-11.8海底捞营业时间",
     markerIcon: "./images/marker_2.png",
     images:[
-        "./images/微信图片_20261025214054_8_972.jpg",
-        "./images/微信图片_20261025214055_9_972.jpg",
-        "./images/微信图片_20261025214056_10_972.jpg"
+        "./images/微信图片_20261025214054_8_972.webp",
+        "./images/微信图片_20261025214055_9_972.webp",
+        "./images/微信图片_20261025214056_10_972.webp"
     ]
   },
   {
@@ -266,10 +436,10 @@ const placeData = [
     desc:"11.7-11.8",
     markerIcon: "./images/marker_3.png",
     images:[
-      "./images/微信图片_20261025222513_15_972.jpg",
-      "./images/微信图片_20261025222511_14_972.jpg",
-      "./images/微信图片_20261025222510_13_972.jpg",
-      "./images/微信图片_20261025222508_12_972.jpg"
+      "./images/微信图片_20261025222513_15_972.webp",
+      "./images/微信图片_20261025222511_14_972.webp",
+      "./images/微信图片_20261025222510_13_972.webp",
+      "./images/微信图片_20261025222508_12_972.webp"
     ]
   },
     {
@@ -280,7 +450,7 @@ const placeData = [
     desc:"11.7-11.8",
     markerIcon: "./images/marker_4.png",
     images:[
-      "./images/1.jpg"
+      "./images/1.webp"
     ]
   },
     {
@@ -291,9 +461,9 @@ const placeData = [
     desc:"11.7-11.8营业时间",
     markerIcon: "./images/marker_5.png",
     images:[
-      "./images/2.jpg",
-      "./images/3.jpg",
-      "./images/4.jpg"
+      "./images/2.webp",
+      "./images/3.webp",
+      "./images/4.webp"
     ]
   },
   {
@@ -304,9 +474,9 @@ const placeData = [
     desc:"11.7-11.8营业时间",
     markerIcon: "./images/marker_6.png",
     images:[
-      "./images/5.jpg",
-      "./images/6.jpg",
-      "./images/7.jpg"
+      "./images/5.webp",
+      "./images/6.webp",
+      "./images/7.webp"
     ]
   },
   {
@@ -317,9 +487,9 @@ const placeData = [
     desc:"11.7-11.8",
     markerIcon: "./images/marker_7.png",
     images:[
-      "./images/8.jpg",
-      "./images/9.jpg",
-      "./images/10.jpg"
+      "./images/8.webp",
+      "./images/9.webp",
+      "./images/10.webp"
     ]
   },
   {
@@ -330,9 +500,9 @@ const placeData = [
     desc:"11.7-11.8 门店营业时间（10:00-23:00）",
     markerIcon: "./images/marker_8.png",
     images:[
-      "./images/11.jpg",
-      "./images/12.jpg",
-      "./images/14.jpg"
+      "./images/11.webp",
+      "./images/12.webp",
+      "./images/14.webp"
     ]
   },
   {
@@ -343,9 +513,9 @@ const placeData = [
     desc:"11.7-11.8 门店营业时间（10:00-23:00）",
     markerIcon: "./images/marker_9.png",
     images:[
-      "./images/11.jpg",
-      "./images/13.jpg",
-      "./images/14.jpg"
+      "./images/11.webp",
+      "./images/13.webp",
+      "./images/14.webp"
     ]
   },
   {
@@ -356,9 +526,9 @@ const placeData = [
     desc:"11.7-11.8  每日8:30开始派礼，每日1000份，先到先得，领完截止",
     markerIcon: "./images/marker_10.png",
     images:[
-      "./images/15.jpg",
-      "./images/16.jpg",
-      "./images/17.jpg"
+      "./images/15.webp",
+      "./images/16.webp",
+      "./images/17.webp"
     ]
   },
   {
@@ -369,12 +539,12 @@ const placeData = [
     desc:"11月6日 14:00-21:00（星期五）<br>11月7日 10:30-21:00（星期六）<br>11月8日 10:30-21:00（星期日）",
     markerIcon: "./images/marker_11.png",
     images:[
-      "./images/18.jpg",
-      "./images/19.jpg",
-      "./images/20.jpg",
-      "./images/21.jpg",
-      "./images/22.jpg",
-      "./images/23.jpg"
+      "./images/18.webp",
+      "./images/19.webp",
+      "./images/20.webp",
+      "./images/21.webp",
+      "./images/22.webp",
+      "./images/23.webp"
     ]
   },
   {
@@ -385,9 +555,9 @@ const placeData = [
     desc:"11.7-11.8 门店营业时间",
     markerIcon: "./images/marker_12.png",
     images:[
-      "./images/24.jpg",
-      "./images/25.jpg",
-      "./images/26.jpg"
+      "./images/24.webp",
+      "./images/25.webp",
+      "./images/26.webp"
     ]
   },
   {
@@ -398,7 +568,7 @@ const placeData = [
     desc:"11.7-11.8 门店营业时间",
     markerIcon: "./images/marker_13.png",
     images:[
-      "./images/27.jpg"
+      "./images/27.webp"
     ]
   }
 ];
@@ -455,6 +625,78 @@ window.previewNext = function(){
   previewImgDom.src = previewImgList[previewCurIndex];
 }
 document.querySelector('.preview-close').onclick = closePreview;
+function getCheckinList(){
+  const raw = localStorage.getItem("checkin_records");
+  if(!raw) return [];
+  try{
+    return JSON.parse(raw);
+  }catch(e){
+    return [];
+  }
+}
+function isPlaceChecked(placeId){
+  const arr = getCheckinList();
+  return arr.some(item=>item.placeId === placeId);
+}
+window.doCheckin = function(placeId){
+  if(isPlaceChecked(placeId)) return;
+  const place = placeData.find(p=>p.id === placeId);
+  if(!place) return;
+  const {lng,lat} = parseCoords(place.coords);
+  const rec = {
+    placeId:place.id,
+    placeName:place.name,
+    markerIcon:place.markerIcon,
+    lng:lng,
+    lat:lat,
+    time:new Date().toLocaleString()
+  };
+  const list = getCheckinList();
+  list.push(rec);
+  localStorage.setItem("checkin_records", JSON.stringify(list));
+  applyMarkerGrayStatus();
+  if(currentPlace && currentPlace.id === placeId){
+    openPopup(currentPlace);
+  }
+}
+function applyMarkerGrayStatus(){
+  const checkedIds = getCheckinList().map(r=>r.placeId);
+  markerList.forEach(m=>{
+    const pid = m.extData.id;
+    const dom = m.getContent();
+    if(checkedIds.includes(pid)){
+      dom.classList.add('marker-checked');
+    }else{
+      dom.classList.remove('marker-checked');
+    }
+  })
+}
+window.openCheckinModal = function(){
+  document.getElementById("checkinModal").style.display = "block";
+  renderCheckinList();
+}
+window.closeCheckinModal = function(){
+  document.getElementById("checkinModal").style.display = "none";
+}
+function renderCheckinList(){
+  const wrap = document.getElementById("checkinListWrap");
+  const list = getCheckinList();
+  if(list.length === 0){
+    wrap.innerHTML = `<div class="checkin-empty">暂无打卡记录，前往地图进行打卡</div>`;
+    return;
+  }
+  let html = "";
+  list.forEach(r=>{
+    html += `
+    <div class="checkin-item">
+      <img class="checkin-item-icon" src="${r.markerIcon||''}" alt="地点图标" onerror="this.style.visibility='hidden'">
+      <div class="checkin-item-name">${r.placeName}</div>
+      <div class="checkin-item-time">打卡时间：${r.time}</div>
+    </div>
+    `
+  })
+  wrap.innerHTML = html;
+}
 
 function initMap(){
   map = new AMap.Map("map", {
@@ -507,6 +749,9 @@ function initMap(){
       });
     }
   });
+  map.on("complete",()=>{
+    applyMarkerGrayStatus();
+  })
 }
 function parseCoords(str){
   const arr = str.split(",");
@@ -515,38 +760,25 @@ function parseCoords(str){
     lat: parseFloat(arr[1])
   }
 }
-
 function renderPlaces(){
   const listWrap = document.getElementById("placeList");
   listWrap.innerHTML = "";
+  markerList.length = 0;
   placeData.forEach((place)=>{
     const {lng,lat} = parseCoords(place.coords);
     const pos = new AMap.LngLat(lng, lat);
-
-    // ✅容错：图片不存在时，自动降级为高德默认marker
-    let markerIcon;
-    try{
-      markerIcon = new AMap.Icon({
-        image: place.markerIcon,
-        size: new AMap.Size(33,33), //图标尺寸
-        imageSize: new AMap.Size(33,33),
-        imageOffset: new AMap.Pixel(0,0)
-      });
-    }catch(err){
-      markerIcon = "https://a.amap.com/jsapi_demos/static/demo-center/icons/poi-marker-default.png";
-    }
-
+    const contentDom = document.createElement('div');
+    contentDom.className = "marker-wrap";
+    contentDom.innerHTML = `<img src="${place.markerIcon}" alt="">`;
     const marker = new AMap.Marker({
       position:pos,
       map:map,
       title:place.name,
-      icon: markerIcon,
-      offset: new AMap.Pixel(-22, -22)
+      content: contentDom,
+      offset: new AMap.Pixel(-16, -33)
     });
-
-    marker.extData = place;
+    marker.extData = {...place};
     markerList.push(marker);
-
     marker.on("click",()=>{
       openPopup(place);
       setActiveItem(place.id);
@@ -569,7 +801,6 @@ function renderPlaces(){
     listWrap.appendChild(div);
   })
 }
-
 function updatePopupPosition(place){
   const {lng,lat} = parseCoords(place.coords);
   const lnglat = new AMap.LngLat(lng, lat);
@@ -615,12 +846,20 @@ function openPopup(place){
     <div class="img-dot">${dots}</div>
     `
   }
+  const checked = isPlaceChecked(place.id);
+  const checkBtnHtml = checked
+    ? `<button class="nav-btn btn-checked" disabled>✅已打卡</button>`
+    : `<button class="nav-btn" onclick="doCheckin(${place.id})">📌打卡</button>`;
+
   const bodyHtml = `
       ${imgHtml}
       <h4>${place.name}</h4>
       <p>${place.address}</p>
       <p>${place.desc}</p>
-      <a class="nav-btn" href="${navUrl}" target="_blank">🔜 到这去</a>
+      <div class="pop-row-two">
+        <a class="nav-btn" href="${navUrl}" target="_blank">🔜 到这去</a>
+        ${checkBtnHtml}
+      </div>
   `;
   document.getElementById("popupBody").innerHTML = bodyHtml;
   window.currentSlideIndex[place.id] = 0;
