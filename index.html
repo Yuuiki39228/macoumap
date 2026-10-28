@@ -32,7 +32,7 @@ button,a{
   padding:8px 14px;
   background:#ffecf3;
   color:#7a4a5b;
-  border:1px solid hsl(0, 0%, 100%);
+  border:1px solid #ffffff;
   border-radius:14px;
   font-size:13px;
   font-weight:600;
@@ -102,7 +102,7 @@ button,a{
   padding-top:10px;
   padding-bottom:10px;
   overflow-y:auto;
-  max-height:calc(85vh - 140px);
+  max-height:calc(85vh - 190px);
   min-height:60px;
 }
 #checkinListWrap{
@@ -114,10 +114,38 @@ button,a{
   width:100%;
   height: 60px;
   background:url("./images/bg-bottom.png") no-repeat center / 100% 100%;
-  border-radius:0 0 20px 20px;
+  border-radius:0 0 0 0;
 }
-
-/* 打卡条目，已删除右侧票根锯齿伪元素 */
+/* 海报按钮区域：bg-bottom之后，弹窗最底部 */
+.checkin-list-footer {
+  padding:12px 22px 12px 22px;
+  border-radius:0 0 20px 20px;
+  background:#ffe6ef;
+}
+.btn-poster {
+  width:100%;
+  padding:11px 14px;
+  border-radius:12px;
+  border:1px solid #ffb3d1;
+  background:linear-gradient(135deg, #ffe4f1, #ffd1e2);
+  color:#7a4a5b;
+  cursor:pointer;
+  font-size:14px;
+  font-weight:600;
+  transition:all 0.2s ease;
+}
+.btn-poster:disabled {
+  opacity:0.45;
+  cursor:not-allowed;
+  background:#f5f5f5;
+  border-color:#eee;
+  color:#999;
+}
+.btn-poster:active:not(:disabled) {
+  transform:scale(0.98);
+  background:#ffcfe4;
+}
+/* 打卡条目 */
 .checkin-item{
   position:relative;
   padding:16px 12px 16px 44px;
@@ -162,6 +190,42 @@ button,a{
 }
 .pop-row-two a,.pop-row-two button{
   flex:1;
+}
+/* 海报预览弹窗 */
+.poster-preview-modal{
+  position:fixed;
+  inset:0;
+  background:rgba(0,0,0,0.85);
+  z-index:100010;
+  display:none;
+  align-items:center;
+  justify-content:center;
+  flex-direction:column;
+}
+.poster-preview-img{
+  max-width:90%;
+  max-height:72vh;
+  border-radius:12px;
+}
+.poster-btn-group{
+  margin-top:16px;
+  display:flex;
+  gap:12px;
+}
+.poster-btn-group button{
+  padding:9px 22px;
+  border-radius:10px;
+  border:none;
+  font-size:14px;
+  cursor:pointer;
+}
+.poster-download{
+  background:#ffb3d1;
+  color:#44222c;
+}
+.poster-close-btn{
+  background:#eee;
+  color:#333;
 }
 .side{width:320px;padding:16px;background:#f7f8fa;overflow:auto;border-right:1px solid #eee;}
 .side h3{margin-bottom:12px;color:#222;font-size:18px}
@@ -363,6 +427,9 @@ button,a{
   .bg-middle{
     padding:0 16px;
   }
+  .checkin-list-footer{
+    padding:12px 16px 12px 16px;
+  }
 }
 </style>
 <base target="_blank">
@@ -379,6 +446,18 @@ button,a{
       <div id="checkinListWrap"></div>
     </div>
     <div class="bg-bottom"></div>
+    <!-- ✅生成海报按钮：bg-bottom之后，弹窗容器最底部 -->
+    <div class="checkin-list-footer">
+      <button id="genPosterBtn" class="btn-poster" onclick="openPosterPreview()">📷 生成打卡海报</button>
+    </div>
+  </div>
+</div>
+<!-- 海报预览弹窗 -->
+<div class="poster-preview-modal" id="posterModal">
+  <img id="posterImg" class="poster-preview-img" alt="打卡海报">
+  <div class="poster-btn-group">
+    <button class="poster-download" onclick="downloadPoster()">💾 下载图片</button>
+    <button class="poster-close-btn" onclick="closePosterPreview()">关闭</button>
   </div>
 </div>
 <div class="created-by">Created by 結絾</div>
@@ -586,6 +665,10 @@ let previewImgList = [];
 let previewCurIndex = 0;
 const fullPreviewDom = document.getElementById('fullPreview');
 const previewImgDom = document.getElementById('previewImg');
+//海报变量
+let posterBlobUrl = null;
+const posterModal = document.getElementById('posterModal');
+const posterImgEl = document.getElementById('posterImg');
 toggleBtn.onclick = function(){
   isCollapsed = !isCollapsed;
   if(isCollapsed){
@@ -679,24 +762,109 @@ window.closeCheckinModal = function(){
   document.getElementById("checkinModal").style.display = "none";
 }
 function renderCheckinList(){
-  const wrap = document.getElementById("checkinListWrap");
   const list = getCheckinList();
+  const wrap = document.getElementById("checkinListWrap");
+  const genBtn = document.getElementById('genPosterBtn');
   if(list.length === 0){
     wrap.innerHTML = `<div class="checkin-empty">暂无打卡记录，前往地图进行打卡</div>`;
+    if(genBtn) genBtn.disabled = true;
     return;
   }
   let html = "";
   list.forEach(r=>{
+    const iconSrc = r.markerIcon || '';
     html += `
     <div class="checkin-item">
-      <img class="checkin-item-icon" src="${r.markerIcon||''}" alt="地点图标" onerror="this.style.visibility='hidden'">
+      <img class="checkin-item-icon" src="${iconSrc}" alt="地点图标" onerror="this.style.visibility='hidden'">
       <div class="checkin-item-name">${r.placeName}</div>
       <div class="checkin-item-time">打卡时间：${r.time}</div>
     </div>
-    `
-  })
+    `;
+  });
   wrap.innerHTML = html;
+  if(genBtn) genBtn.disabled = false;
 }
+
+// 动态加载html2canvas
+function loadHtml2Canvas() {
+  return new Promise(function (resolve, reject) {
+    if (window.html2canvas) {
+      resolve();
+      return;
+    }
+    const script = document.createElement('script');
+    script.src = 'https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js';
+    script.onload = resolve;
+    script.onerror = reject;
+    document.head.appendChild(script);
+  });
+}
+
+window.openPosterPreview = async function () {
+  const list = getCheckinList();
+  if (list.length <= 0) return;
+  try {
+    if (!window.html2canvas) {
+      await loadHtml2Canvas();
+    }
+    // 导出完整弹窗容器 checkin-modal-inner（包含top/middle/bottom三段背景）
+    const target = document.querySelector('.checkin-modal-inner');
+    if (!target) return;
+
+    // 获取需要临时隐藏元素
+    const closeBtn = document.querySelector('.checkin-close');
+    const footerBar = document.querySelector('.checkin-list-footer');
+    // 保存原始display状态
+    const oldCloseDisplay = closeBtn ? closeBtn.style.display : '';
+    const oldFooterDisplay = footerBar ? footerBar.style.display : '';
+
+    // 截图前隐藏关闭按钮、生成海报按钮栏
+    if(closeBtn) closeBtn.style.display = 'none';
+    if(footerBar) footerBar.style.display = 'none';
+
+    // 临时取消middle最大高度限制，让全部打卡记录完整渲染在截图内
+    const middleDom = document.querySelector('.bg-middle');
+    const oldMiddleMaxH = middleDom ? middleDom.style.maxHeight : '';
+    if(middleDom) middleDom.style.maxHeight = 'none';
+
+    const canvas = await html2canvas(target, {
+      backgroundColor:null,
+      scale: 2,
+      useCORS: true,
+      allowTaint:true
+    });
+
+    // 全部恢复页面原有样式
+    if(closeBtn) closeBtn.style.display = oldCloseDisplay;
+    if(footerBar) footerBar.style.display = oldFooterDisplay;
+    if(middleDom) middleDom.style.maxHeight = oldMiddleMaxH;
+
+    canvas.toBlob(function (blob) {
+      if (!blob) return;
+      if (posterBlobUrl) URL.revokeObjectURL(posterBlobUrl);
+      posterBlobUrl = URL.createObjectURL(blob);
+      posterImgEl.src = posterBlobUrl;
+      posterModal.style.display = 'flex';
+    }, 'image/png');
+
+  } catch (err) {
+    console.error(err);
+    alert('海报生成失败，请使用 http 本地服务运行。');
+  }
+};
+
+window.closePosterPreview = function () {
+  posterModal.style.display = 'none';
+};
+window.downloadPoster = function () {
+  if (!posterBlobUrl) return;
+  const a = document.createElement('a');
+  a.href = posterBlobUrl;
+  a.download = '咲良澳门打卡海报.png';
+  document.body.appendChild(a);
+  a.click();
+  a.remove();
+};
 
 function initMap(){
   map = new AMap.Map("map", {
