@@ -23,7 +23,6 @@ button,a{
   z-index:100000;
   pointer-events:none;
 }
-/* ============ 樱花粉主题：打卡记录按钮与弹窗 ============ */
 .checkin-btn-fixed{
   position:fixed;
   top:32px;
@@ -50,18 +49,20 @@ button,a{
   background:transparent;
   z-index:100001;
   display:none;
-  padding:16px;
+  padding: max(16px, env(safe-area-inset-top)) 14px 16px 14px;
+  box-sizing: border-box;
 }
-.checkin-modal-inner{
-  width:100%;
-  max-width:440px;
-  margin:14px auto 0;
-  border-radius:20px;
-  box-shadow:0 8px 24px rgba(255, 180, 210, 0.25);
-  border:1px solid #ffdce9;
-  overflow:visible;
+.checkin-modal-inner {
+  width: 90vw;
+  max-width: 520px;
+  min-width: 320px;
+  margin: 0 auto;
+  border-radius: 20px;
+  box-shadow: 0 8px 24px rgba(255, 180, 210, 0.25);
+  border: 1px solid #ffdce9;
+  overflow: visible;
+  box-sizing: border-box;
 }
-/* 顶部固定头图，包含标题+关闭按钮，高度70px */
 .bg-top{
   width:100%;
   height:70px;
@@ -71,6 +72,7 @@ button,a{
   align-items:center;
   padding:0 22px;
   border-radius:20px 20px 0 0;
+  box-sizing: border-box;
 }
 .bg-top h4{
   font-size:17px;
@@ -88,14 +90,13 @@ button,a{
   align-items:center;
   justify-content:center;
   border-radius:10px;
-  background:#ffe4f1;
+  background:#fff2f8;
   transition:all 0.25s ease;
 }
 .checkin-close:hover{
-  background:#ffcfe4;
+  background:#ffb1d3;
   color:#b56576;
 }
-/* 中间：唯一滚动容器！纵向repeat-y，列表变长自动拉长 */
 .bg-middle{
   background:url("./images/bg-middle.png") repeat-y center top / 100% auto;
   padding:0 22px;
@@ -104,30 +105,30 @@ button,a{
   overflow-y:auto;
   max-height:calc(85vh - 190px);
   min-height:60px;
+  box-sizing: border-box;
 }
 #checkinListWrap{
   width:100%;
   padding-bottom:10px;
 }
-/* 底部固定底图 */
 .bg-bottom{
   width:100%;
   height: 60px;
   background:url("./images/bg-bottom.png") no-repeat center / 100% 100%;
   border-radius:0 0 0 0;
 }
-/* 海报按钮区域：bg-bottom之后，弹窗最底部 */
 .checkin-list-footer {
   padding:12px 22px 12px 22px;
   border-radius:0 0 20px 20px;
-  background:#ffe6ef;
+  background:#FED6D6;
+  box-sizing: border-box;
 }
 .btn-poster {
   width:100%;
   padding:11px 14px;
   border-radius:12px;
   border:1px solid #ffb3d1;
-  background:linear-gradient(135deg, #ffe4f1, #ffd1e2);
+  background:linear-gradient(135deg, #ffffff, #ffeaf3);
   color:#7a4a5b;
   cursor:pointer;
   font-size:14px;
@@ -145,7 +146,6 @@ button,a{
   transform:scale(0.98);
   background:#ffcfe4;
 }
-/* 打卡条目 */
 .checkin-item{
   position:relative;
   padding:16px 12px 16px 44px;
@@ -191,7 +191,6 @@ button,a{
 .pop-row-two a,.pop-row-two button{
   flex:1;
 }
-/* 海报预览弹窗 */
 .poster-preview-modal{
   position:fixed;
   inset:0;
@@ -202,10 +201,12 @@ button,a{
   justify-content:center;
   flex-direction:column;
 }
-.poster-preview-img{
-  max-width:90%;
-  max-height:72vh;
-  border-radius:12px;
+.poster-preview-img {
+  max-width: 90%;
+  max-height: 72vh;
+  border-radius: 12px;
+  image-rendering: -webkit-optimize-contrast;
+  image-rendering: crisp-edges;
 }
 .poster-btn-group{
   margin-top:16px;
@@ -446,13 +447,11 @@ button,a{
       <div id="checkinListWrap"></div>
     </div>
     <div class="bg-bottom"></div>
-    <!-- ✅生成海报按钮：bg-bottom之后，弹窗容器最底部 -->
     <div class="checkin-list-footer">
       <button id="genPosterBtn" class="btn-poster" onclick="openPosterPreview()">📷 生成打卡海报</button>
     </div>
   </div>
 </div>
-<!-- 海报预览弹窗 -->
 <div class="poster-preview-modal" id="posterModal">
   <img id="posterImg" class="poster-preview-img" alt="打卡海报">
   <div class="poster-btn-group">
@@ -484,14 +483,15 @@ button,a{
 const placeData = [
   {
     id:1,
-    name:"花墙待定",
-    address:"澳门花墙",
-    coords:"113.561538,22.14043",
-    desc:"江南三大名楼之一，打卡圣地",
+    name:"澳门户外5米花墙应援",
+    address:"CHILL HOUSE 路氹城澳門百老匯百老匯美食街地下C-G002-G004號舖",
+    coords:"113.556918,22.144634",
+    desc:"11月7日—11月8日",
     markerIcon: "./images/marker_1.png",
     images:[
-      "./images/微信图片_20261025205133_1_972.webp",
-      "./images/微信图片_20261025205135_2_972.webp"
+      "./images/28.webp",
+      "./images/29.webp",
+      "./images/30.webp"
     ]
   },
   {
@@ -665,7 +665,6 @@ let previewImgList = [];
 let previewCurIndex = 0;
 const fullPreviewDom = document.getElementById('fullPreview');
 const previewImgDom = document.getElementById('previewImg');
-//海报变量
 let posterBlobUrl = null;
 const posterModal = document.getElementById('posterModal');
 const posterImgEl = document.getElementById('posterImg');
@@ -784,8 +783,6 @@ function renderCheckinList(){
   wrap.innerHTML = html;
   if(genBtn) genBtn.disabled = false;
 }
-
-// 动态加载html2canvas
 function loadHtml2Canvas() {
   return new Promise(function (resolve, reject) {
     if (window.html2canvas) {
@@ -799,45 +796,78 @@ function loadHtml2Canvas() {
     document.head.appendChild(script);
   });
 }
+function getImgRatio(src) {
+  return new Promise(resolve => {
+    const im = new Image();
+    im.onload = () => resolve(im.naturalHeight / im.naturalWidth);
+    im.onerror = () => resolve(0);
+    im.src = src;
+  });
+}
+
+async function buildPosterDom(list, W) {
+  const k = W / 520;
+  const px = v => Math.round(v * k) + 'px';
+
+  // 按图片真实宽高比计算上下两段的实际高度
+  const [topRatio, botRatio] = await Promise.all([
+    getImgRatio("./images/bg-top.png"),
+    getImgRatio("./images/bg-bottom.png")
+  ]);
+  const headerH = topRatio ? Math.round(W * topRatio) : Math.round(70 * k);
+  const footerH = botRatio ? Math.round(W * botRatio) : Math.round(60 * k);
+
+  const wrap = document.createElement('div');
+  wrap.style.cssText = `position:absolute;left:-10000px;top:0;width:${W}px;box-sizing:border-box;`;
+
+  const header = document.createElement('div');
+  header.style.cssText = `height:${headerH}px;background:url("./images/bg-top.png") no-repeat center/100% 100%;border-radius:${px(20)} ${px(20)} 0 0;`;
+
+  const middle = document.createElement('div');
+  middle.style.cssText = `background:url("./images/bg-middle.png") repeat-y center top/${W}px auto;padding:${px(10)} ${px(22)};box-sizing:border-box;`;
+
+  list.forEach(r => {
+    const item = document.createElement('div');
+    item.style.cssText = `position:relative;padding:${px(16)} ${px(12)} ${px(16)} ${px(44)};border-bottom:1px solid #ffdde8;`;
+    item.innerHTML = `
+      <img src="${r.markerIcon}" style="position:absolute;left:${px(4)};top:50%;transform:translateY(-50%);width:${px(28)};height:${px(28)};object-fit:contain;" onerror="this.style.visibility='hidden'">
+      <div style="font-weight:600;font-size:${px(16)};color:#8c4859;margin-bottom:${px(6)};">${r.placeName}</div>
+      <div style="font-size:${px(13)};color:#b8788a;">打卡时间：${r.time}</div>`;
+    middle.appendChild(item);
+  });
+
+  const footer = document.createElement('div');
+  footer.style.cssText = `height:${footerH}px;background:url("./images/bg-bottom.png") no-repeat center/100% 100%;`;
+
+  wrap.appendChild(header);
+  wrap.appendChild(middle);
+  wrap.appendChild(footer);
+  document.body.appendChild(wrap);
+  return wrap;
+}
 
 window.openPosterPreview = async function () {
   const list = getCheckinList();
   if (list.length <= 0) return;
   try {
-    if (!window.html2canvas) {
-      await loadHtml2Canvas();
-    }
-    // 导出完整弹窗容器 checkin-modal-inner（包含top/middle/bottom三段背景）
-    const target = document.querySelector('.checkin-modal-inner');
-    if (!target) return;
+    if (!window.html2canvas) await loadHtml2Canvas();
 
-    // 获取需要临时隐藏元素
-    const closeBtn = document.querySelector('.checkin-close');
-    const footerBar = document.querySelector('.checkin-list-footer');
-    // 保存原始display状态
-    const oldCloseDisplay = closeBtn ? closeBtn.style.display : '';
-    const oldFooterDisplay = footerBar ? footerBar.style.display : '';
+    const W = 1080;
+    const dom = await buildPosterDom(list, W);   // 注意这里加了 await
 
-    // 截图前隐藏关闭按钮、生成海报按钮栏
-    if(closeBtn) closeBtn.style.display = 'none';
-    if(footerBar) footerBar.style.display = 'none';
+    await new Promise(r => setTimeout(r, 400));
 
-    // 临时取消middle最大高度限制，让全部打卡记录完整渲染在截图内
-    const middleDom = document.querySelector('.bg-middle');
-    const oldMiddleMaxH = middleDom ? middleDom.style.maxHeight : '';
-    if(middleDom) middleDom.style.maxHeight = 'none';
-
-    const canvas = await html2canvas(target, {
-      backgroundColor:null,
-      scale: 2,
+    const canvas = await html2canvas(dom, {
+      backgroundColor: null,
+      scale: 1,
+      width: W,
+      height: dom.offsetHeight,
+      allowTaint: true,
       useCORS: true,
-      allowTaint:true
+      logging: false
     });
 
-    // 全部恢复页面原有样式
-    if(closeBtn) closeBtn.style.display = oldCloseDisplay;
-    if(footerBar) footerBar.style.display = oldFooterDisplay;
-    if(middleDom) middleDom.style.maxHeight = oldMiddleMaxH;
+    document.body.removeChild(dom);
 
     canvas.toBlob(function (blob) {
       if (!blob) return;
@@ -846,12 +876,12 @@ window.openPosterPreview = async function () {
       posterImgEl.src = posterBlobUrl;
       posterModal.style.display = 'flex';
     }, 'image/png');
-
   } catch (err) {
     console.error(err);
     alert('海报生成失败，请使用 http 本地服务运行。');
   }
 };
+
 
 window.closePosterPreview = function () {
   posterModal.style.display = 'none';
@@ -865,7 +895,6 @@ window.downloadPoster = function () {
   a.click();
   a.remove();
 };
-
 function initMap(){
   map = new AMap.Map("map", {
     zoom:13,
@@ -1018,7 +1047,6 @@ function openPopup(place){
   const checkBtnHtml = checked
     ? `<button class="nav-btn btn-checked" disabled>✅已打卡</button>`
     : `<button class="nav-btn" onclick="doCheckin(${place.id})">📌打卡</button>`;
-
   const bodyHtml = `
       ${imgHtml}
       <h4>${place.name}</h4>
