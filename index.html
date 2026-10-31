@@ -3,9 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-<meta http-equiv="Cache-Control" content="no-store" />
 <title>2026宮脇咲良澳门演唱会应援</title>
-<link rel="shortcut icon" href="data:image/x-icon;," type="image/x-icon">
 <style>
 *{margin:0;padding:0;box-sizing:border-box;font-family:system-ui}
 button,a{
@@ -670,7 +668,6 @@ const previewImgDom = document.getElementById('previewImg');
 let posterBlobUrl = null;
 const posterModal = document.getElementById('posterModal');
 const posterImgEl = document.getElementById('posterImg');
-let mapDestroyFlag = false;
 toggleBtn.onclick = function(){
   isCollapsed = !isCollapsed;
   if(isCollapsed){
@@ -807,21 +804,28 @@ function getImgRatio(src) {
     im.src = src;
   });
 }
+
 async function buildPosterDom(list, W) {
   const k = W / 520;
   const px = v => Math.round(v * k) + 'px';
+
+  // 按图片真实宽高比计算上下两段的实际高度
   const [topRatio, botRatio] = await Promise.all([
     getImgRatio("./images/bg-top.png"),
     getImgRatio("./images/bg-bottom.png")
   ]);
   const headerH = topRatio ? Math.round(W * topRatio) : Math.round(70 * k);
   const footerH = botRatio ? Math.round(W * botRatio) : Math.round(60 * k);
+
   const wrap = document.createElement('div');
   wrap.style.cssText = `position:absolute;left:-10000px;top:0;width:${W}px;box-sizing:border-box;`;
+
   const header = document.createElement('div');
   header.style.cssText = `height:${headerH}px;background:url("./images/bg-top.png") no-repeat center/100% 100%;border-radius:${px(20)} ${px(20)} 0 0;`;
+
   const middle = document.createElement('div');
   middle.style.cssText = `background:url("./images/bg-middle.png") repeat-y center top/${W}px auto;padding:${px(10)} ${px(22)};box-sizing:border-box;`;
+
   list.forEach(r => {
     const item = document.createElement('div');
     item.style.cssText = `position:relative;padding:${px(16)} ${px(12)} ${px(16)} ${px(44)};border-bottom:1px solid #ffdde8;`;
@@ -831,22 +835,28 @@ async function buildPosterDom(list, W) {
       <div style="font-size:${px(13)};color:#b8788a;">打卡时间：${r.time}</div>`;
     middle.appendChild(item);
   });
+
   const footer = document.createElement('div');
   footer.style.cssText = `height:${footerH}px;background:url("./images/bg-bottom.png") no-repeat center/100% 100%;`;
+
   wrap.appendChild(header);
   wrap.appendChild(middle);
   wrap.appendChild(footer);
   document.body.appendChild(wrap);
   return wrap;
 }
+
 window.openPosterPreview = async function () {
   const list = getCheckinList();
   if (list.length <= 0) return;
   try {
     if (!window.html2canvas) await loadHtml2Canvas();
+
     const W = 1080;
-    const dom = await buildPosterDom(list, W);
+    const dom = await buildPosterDom(list, W);   // 注意这里加了 await
+
     await new Promise(r => setTimeout(r, 400));
+
     const canvas = await html2canvas(dom, {
       backgroundColor: null,
       scale: 1,
@@ -856,7 +866,9 @@ window.openPosterPreview = async function () {
       useCORS: true,
       logging: false
     });
+
     document.body.removeChild(dom);
+
     canvas.toBlob(function (blob) {
       if (!blob) return;
       if (posterBlobUrl) URL.revokeObjectURL(posterBlobUrl);
@@ -869,6 +881,8 @@ window.openPosterPreview = async function () {
     alert('海报生成失败，请使用 http 本地服务运行。');
   }
 };
+
+
 window.closePosterPreview = function () {
   posterModal.style.display = 'none';
 };
@@ -882,12 +896,6 @@ window.downloadPoster = function () {
   a.remove();
 };
 function initMap(){
-  const mapDom = document.getElementById('map');
-  if (mapDom) {
-    mapDom.style.width = '100%';
-    mapDom.style.height = '100%';
-    mapDom.style.minHeight = '300px';
-  }
   map = new AMap.Map("map", {
     zoom:13,
     center:[113.561538,22.14043],
@@ -941,7 +949,6 @@ function initMap(){
   map.on("complete",()=>{
     applyMarkerGrayStatus();
   })
-  mapDestroyFlag = false;
 }
 function parseCoords(str){
   const arr = str.split(",");
@@ -1040,14 +1047,13 @@ function openPopup(place){
   const checkBtnHtml = checked
     ? `<button class="nav-btn btn-checked" disabled>✅已打卡</button>`
     : `<button class="nav-btn" onclick="doCheckin(${place.id})">📌打卡</button>`;
-  const navBtnHtml = `<button class="nav-btn" onclick="window.open('${navUrl}','_blank')">🔜 到这去</button>`;
   const bodyHtml = `
       ${imgHtml}
       <h4>${place.name}</h4>
       <p>${place.address}</p>
       <p>${place.desc}</p>
       <div class="pop-row-two">
-        ${navBtnHtml}
+        <a class="nav-btn" href="${navUrl}" target="_blank">🔜 到这去</a>
         ${checkBtnHtml}
       </div>
   `;
@@ -1149,113 +1155,6 @@ function sortPlaceList(){
   });
 }
 initMap();
-
-// 新增核心修复：页面隐藏时标记销毁，页面重新获得焦点时重建地图
-document.addEventListener('pagehide', function () {
-  if (map) {
-    map.destroy();
-    map = null;
-    mapDestroyFlag = true;
-  }
-});
-
-let focusTimer = null;
-window.addEventListener('focus', function () {
-  clearTimeout(focusTimer);
-  focusTimer = setTimeout(async () => {
-    if (!mapDestroyFlag && map) {
-      try {
-        map.resize();
-        const center = map.getCenter();
-        if (center) {
-          map.panTo(center);
-        }
-        return;
-      } catch (e) {
-        console.warn('地图画布失效，准备重建');
-      }
-    }
-    // 重建地图
-    if(map) {
-      map.destroy();
-      map = null;
-    }
-    initMap();
-  }, 350);
-});
-
-document.addEventListener('visibilitychange', async function () {
-  if (document.visibilityState !== 'visible') return;
-  await new Promise(resolve => setTimeout(resolve, 250));
-  const mapDom = document.getElementById('map');
-  if (!mapDom) return;
-  const rect = mapDom.getBoundingClientRect();
-  if (rect.height < 10 || rect.width < 10) {
-    mapDom.style.width = '100%';
-    mapDom.style.height = '100%';
-    mapDom.style.minHeight = '300px';
-  }
-  if (!map) {
-    initMap();
-    return;
-  }
-  try {
-    if (map._resetWebGL) map._resetWebGL();
-    map.resize();
-    const center = map.getCenter();
-    if (center) {
-      map.setZoom(map.getZoom());
-      map.panTo(center);
-    }
-  } catch (e) {
-    console.warn('visibilitychange 地图恢复失败，销毁重建', e);
-    map.destroy();
-    map = null;
-    initMap();
-  }
-});
-
-window.addEventListener('pageshow', function (e) {
-  setTimeout(() => {
-    if (e.persisted) {
-      console.log('从bfcache返回，销毁旧地图重建');
-      if(map) {
-        map.destroy();
-        map = null;
-      }
-      initMap();
-    } else {
-      const mapDom = document.getElementById('map');
-      if (mapDom) {
-        const rect = mapDom.getBoundingClientRect();
-        if (rect.height < 10 || rect.width < 10) {
-          mapDom.style.width = '100%';
-          mapDom.style.height = '100%';
-          mapDom.style.minHeight = '300px';
-        }
-      }
-      if (!map) {
-        initMap();
-        return;
-      }
-      try {
-        if (map._resetWebGL) map._resetWebGL();
-        map.resize();
-      } catch (e) {
-        console.warn('pageshow地图恢复失败，重建', e);
-        map = null;
-        initMap();
-      }
-    }
-  }, 300);
-});
-</script>
-<!-- 上线前删除vConsole调试脚本 -->
-<script src="https://cdn.bootcdn.net/ajax/libs/vConsole/3.15.1/vconsole.min.js"></script>
-<script>
-document.addEventListener('DOMContentLoaded',function(){
-  new VConsole();
-});
 </script>
 </body>
 </html>
