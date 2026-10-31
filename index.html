@@ -1155,6 +1155,20 @@ function sortPlaceList(){
   });
 }
 initMap();
+// 页面切回，修复跳转外部导航后地图瓦片空白
+document.addEventListener('visibilitychange', function(){
+  if(!map) return;
+  if(document.visibilityState === 'visible'){
+    try{
+      // 恢复webgl上下文
+      if(map._resetWebGL) map._resetWebGL();
+      map.resize();
+    }catch(e){
+      console.warn('地图webgl恢复',e);
+    }
+  }
+});
+
 </script>
 </body>
 </html>
