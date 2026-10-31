@@ -435,8 +435,6 @@ button,a{
 }
 </style>
 <base target="_blank">
-<script src="https://cdn.bootcdn.net/ajax/libs/vConsole/3.15.1/vconsole.min.js"></script>
-<script>new VConsole();</script>
 </head>
 <body>
 <button class="checkin-btn-fixed" onclick="openCheckinModal()">🌸 打卡记录</button>
@@ -1201,5 +1199,14 @@ window.addEventListener('pageshow', function () {
   }, 200);
 });
 </script>
+<!-- 移动端调试：放在body末尾，DOM加载完成再初始化 -->
+<script src="https://cdn.bootcdn.net/ajax/libs/vConsole/3.15.1/vconsole.min.js"></script>
+<script>
+// DOM全部渲染完成再实例化
+document.addEventListener('DOMContentLoaded',function(){
+  new VConsole();
+});
+</script>
+
 </body>
 </html>
