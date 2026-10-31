@@ -3,6 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<meta http-equiv="Cache-Control" content="no-store" />
 <title>2026宮脇咲良澳门演唱会应援</title>
 <link rel="shortcut icon" href="data:image/x-icon;," type="image/x-icon">
 <style>
@@ -1037,13 +1038,15 @@ function openPopup(place){
   const checkBtnHtml = checked
     ? `<button class="nav-btn btn-checked" disabled>✅已打卡</button>`
     : `<button class="nav-btn" onclick="doCheckin(${place.id})">📌打卡</button>`;
+  // 修改导航按钮为JS调用window.open，规避a标签劫持
+  const navBtnHtml = `<button class="nav-btn" onclick="window.open('${navUrl}','_blank')">🔜 到这去</button>`;
   const bodyHtml = `
       ${imgHtml}
       <h4>${place.name}</h4>
       <p>${place.address}</p>
       <p>${place.desc}</p>
       <div class="pop-row-two">
-        <a class="nav-btn" href="${navUrl}" target="_blank">🔜 到这去</a>
+        ${navBtnHtml}
         ${checkBtnHtml}
       </div>
   `;
@@ -1148,7 +1151,7 @@ initMap();
 
 document.addEventListener('visibilitychange', async function () {
   if (document.visibilityState !== 'visible') return;
-  await new Promise(resolve => setTimeout(resolve, 150));
+  await new Promise(resolve => setTimeout(resolve, 250));
   const mapDom = document.getElementById('map');
   if (!mapDom) return;
   const rect = mapDom.getBoundingClientRect();
@@ -1170,43 +1173,54 @@ document.addEventListener('visibilitychange', async function () {
       map.panTo(center);
     }
   } catch (e) {
-    console.warn('地图恢复失败，尝试重建', e);
+    console.warn('visibilitychange 地图恢复失败，销毁重建', e);
+    map.destroy();
+    map = null;
     initMap();
   }
 });
 
-window.addEventListener('pageshow', function () {
+window.addEventListener('pageshow', function (e) {
   setTimeout(() => {
-    const mapDom = document.getElementById('map');
-    if (mapDom) {
-      const rect = mapDom.getBoundingClientRect();
-      if (rect.height < 10 || rect.width < 10) {
-        mapDom.style.width = '100%';
-        mapDom.style.height = '100%';
-        mapDom.style.minHeight = '300px';
+    if (e.persisted) {
+      console.log('从bfcache返回，销毁旧地图重建');
+      if(map) {
+        map.destroy();
+        map = null;
+      }
+      initMap();
+    } else {
+      const mapDom = document.getElementById('map');
+      if (mapDom) {
+        const rect = mapDom.getBoundingClientRect();
+        if (rect.height < 10 || rect.width < 10) {
+          mapDom.style.width = '100%';
+          mapDom.style.height = '100%';
+          mapDom.style.minHeight = '300px';
+        }
+      }
+      if (!map) {
+        initMap();
+        return;
+      }
+      try {
+        if (map._resetWebGL) map._resetWebGL();
+        map.resize();
+      } catch (e) {
+        console.warn('pageshow地图恢复失败，重建', e);
+        map = null;
+        initMap();
       }
     }
-    if (!map) {
-      initMap();
-      return;
-    }
-    try {
-      if (map._resetWebGL) map._resetWebGL();
-      map.resize();
-    } catch (e) {
-      console.warn('pageshow地图恢复失败', e);
-    }
-  }, 200);
+  }, 300);
 });
 </script>
 <!-- 移动端调试：放在body末尾，DOM加载完成再初始化 -->
 <script src="https://cdn.bootcdn.net/ajax/libs/vConsole/3.15.1/vconsole.min.js"></script>
 <script>
-// DOM全部渲染完成再实例化
 document.addEventListener('DOMContentLoaded',function(){
   new VConsole();
 });
 </script>
-
 </body>
 </html>
