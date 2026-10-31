@@ -4,6 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
 <title>2026宮脇咲良澳门演唱会应援</title>
+<link rel="shortcut icon" href="data:image/x-icon;," type="image/x-icon">
 <style>
 *{margin:0;padding:0;box-sizing:border-box;font-family:system-ui}
 button,a{
@@ -804,28 +805,21 @@ function getImgRatio(src) {
     im.src = src;
   });
 }
-
 async function buildPosterDom(list, W) {
   const k = W / 520;
   const px = v => Math.round(v * k) + 'px';
-
-  // 按图片真实宽高比计算上下两段的实际高度
   const [topRatio, botRatio] = await Promise.all([
     getImgRatio("./images/bg-top.png"),
     getImgRatio("./images/bg-bottom.png")
   ]);
   const headerH = topRatio ? Math.round(W * topRatio) : Math.round(70 * k);
   const footerH = botRatio ? Math.round(W * botRatio) : Math.round(60 * k);
-
   const wrap = document.createElement('div');
   wrap.style.cssText = `position:absolute;left:-10000px;top:0;width:${W}px;box-sizing:border-box;`;
-
   const header = document.createElement('div');
   header.style.cssText = `height:${headerH}px;background:url("./images/bg-top.png") no-repeat center/100% 100%;border-radius:${px(20)} ${px(20)} 0 0;`;
-
   const middle = document.createElement('div');
   middle.style.cssText = `background:url("./images/bg-middle.png") repeat-y center top/${W}px auto;padding:${px(10)} ${px(22)};box-sizing:border-box;`;
-
   list.forEach(r => {
     const item = document.createElement('div');
     item.style.cssText = `position:relative;padding:${px(16)} ${px(12)} ${px(16)} ${px(44)};border-bottom:1px solid #ffdde8;`;
@@ -835,28 +829,22 @@ async function buildPosterDom(list, W) {
       <div style="font-size:${px(13)};color:#b8788a;">打卡时间：${r.time}</div>`;
     middle.appendChild(item);
   });
-
   const footer = document.createElement('div');
   footer.style.cssText = `height:${footerH}px;background:url("./images/bg-bottom.png") no-repeat center/100% 100%;`;
-
   wrap.appendChild(header);
   wrap.appendChild(middle);
   wrap.appendChild(footer);
   document.body.appendChild(wrap);
   return wrap;
 }
-
 window.openPosterPreview = async function () {
   const list = getCheckinList();
   if (list.length <= 0) return;
   try {
     if (!window.html2canvas) await loadHtml2Canvas();
-
     const W = 1080;
-    const dom = await buildPosterDom(list, W);   // 注意这里加了 await
-
+    const dom = await buildPosterDom(list, W);
     await new Promise(r => setTimeout(r, 400));
-
     const canvas = await html2canvas(dom, {
       backgroundColor: null,
       scale: 1,
@@ -866,9 +854,7 @@ window.openPosterPreview = async function () {
       useCORS: true,
       logging: false
     });
-
     document.body.removeChild(dom);
-
     canvas.toBlob(function (blob) {
       if (!blob) return;
       if (posterBlobUrl) URL.revokeObjectURL(posterBlobUrl);
@@ -881,8 +867,6 @@ window.openPosterPreview = async function () {
     alert('海报生成失败，请使用 http 本地服务运行。');
   }
 };
-
-
 window.closePosterPreview = function () {
   posterModal.style.display = 'none';
 };
@@ -896,6 +880,12 @@ window.downloadPoster = function () {
   a.remove();
 };
 function initMap(){
+  const mapDom = document.getElementById('map');
+  if (mapDom) {
+    mapDom.style.width = '100%';
+    mapDom.style.height = '100%';
+    mapDom.style.minHeight = '300px';
+  }
   map = new AMap.Map("map", {
     zoom:13,
     center:[113.561538,22.14043],
@@ -1155,20 +1145,59 @@ function sortPlaceList(){
   });
 }
 initMap();
-// 页面切回，修复跳转外部导航后地图瓦片空白
-document.addEventListener('visibilitychange', function(){
-  if(!map) return;
-  if(document.visibilityState === 'visible'){
-    try{
-      // 恢复webgl上下文
-      if(map._resetWebGL) map._resetWebGL();
-      map.resize();
-    }catch(e){
-      console.warn('地图webgl恢复',e);
+
+document.addEventListener('visibilitychange', async function () {
+  if (document.visibilityState !== 'visible') return;
+  await new Promise(resolve => setTimeout(resolve, 150));
+  const mapDom = document.getElementById('map');
+  if (!mapDom) return;
+  const rect = mapDom.getBoundingClientRect();
+  if (rect.height < 10 || rect.width < 10) {
+    mapDom.style.width = '100%';
+    mapDom.style.height = '100%';
+    mapDom.style.minHeight = '300px';
+  }
+  if (!map) {
+    initMap();
+    return;
+  }
+  try {
+    if (map._resetWebGL) map._resetWebGL();
+    map.resize();
+    const center = map.getCenter();
+    if (center) {
+      map.setZoom(map.getZoom());
+      map.panTo(center);
     }
+  } catch (e) {
+    console.warn('地图恢复失败，尝试重建', e);
+    initMap();
   }
 });
 
+window.addEventListener('pageshow', function () {
+  setTimeout(() => {
+    const mapDom = document.getElementById('map');
+    if (mapDom) {
+      const rect = mapDom.getBoundingClientRect();
+      if (rect.height < 10 || rect.width < 10) {
+        mapDom.style.width = '100%';
+        mapDom.style.height = '100%';
+        mapDom.style.minHeight = '300px';
+      }
+    }
+    if (!map) {
+      initMap();
+      return;
+    }
+    try {
+      if (map._resetWebGL) map._resetWebGL();
+      map.resize();
+    } catch (e) {
+      console.warn('pageshow地图恢复失败', e);
+    }
+  }, 200);
+});
 </script>
 </body>
 </html>
