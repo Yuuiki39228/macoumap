@@ -670,6 +670,7 @@ const previewImgDom = document.getElementById('previewImg');
 let posterBlobUrl = null;
 const posterModal = document.getElementById('posterModal');
 const posterImgEl = document.getElementById('posterImg');
+let mapDestroyFlag = false;
 toggleBtn.onclick = function(){
   isCollapsed = !isCollapsed;
   if(isCollapsed){
@@ -940,6 +941,7 @@ function initMap(){
   map.on("complete",()=>{
     applyMarkerGrayStatus();
   })
+  mapDestroyFlag = false;
 }
 function parseCoords(str){
   const arr = str.split(",");
@@ -1038,7 +1040,6 @@ function openPopup(place){
   const checkBtnHtml = checked
     ? `<button class="nav-btn btn-checked" disabled>✅已打卡</button>`
     : `<button class="nav-btn" onclick="doCheckin(${place.id})">📌打卡</button>`;
-  // 修改导航按钮为JS调用window.open，规避a标签劫持
   const navBtnHtml = `<button class="nav-btn" onclick="window.open('${navUrl}','_blank')">🔜 到这去</button>`;
   const bodyHtml = `
       ${imgHtml}
@@ -1149,6 +1150,40 @@ function sortPlaceList(){
 }
 initMap();
 
+// 新增核心修复：页面隐藏时标记销毁，页面重新获得焦点时重建地图
+document.addEventListener('pagehide', function () {
+  if (map) {
+    map.destroy();
+    map = null;
+    mapDestroyFlag = true;
+  }
+});
+
+let focusTimer = null;
+window.addEventListener('focus', function () {
+  clearTimeout(focusTimer);
+  focusTimer = setTimeout(async () => {
+    if (!mapDestroyFlag && map) {
+      try {
+        map.resize();
+        const center = map.getCenter();
+        if (center) {
+          map.panTo(center);
+        }
+        return;
+      } catch (e) {
+        console.warn('地图画布失效，准备重建');
+      }
+    }
+    // 重建地图
+    if(map) {
+      map.destroy();
+      map = null;
+    }
+    initMap();
+  }, 350);
+});
+
 document.addEventListener('visibilitychange', async function () {
   if (document.visibilityState !== 'visible') return;
   await new Promise(resolve => setTimeout(resolve, 250));
@@ -1213,6 +1248,13 @@ window.addEventListener('pageshow', function (e) {
       }
     }
   }, 300);
+});
+</script>
+<!-- 上线前删除vConsole调试脚本 -->
+<script src="https://cdn.bootcdn.net/ajax/libs/vConsole/3.15.1/vconsole.min.js"></script>
+<script>
+document.addEventListener('DOMContentLoaded',function(){
+  new VConsole();
 });
 </script>
 </body>
